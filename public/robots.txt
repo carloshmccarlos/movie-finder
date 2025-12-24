@@ -1,0 +1,9 @@
+# AI电影搜索 - Robots.txt
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://movie-search.example.com/sitemap.xml
+
+# Crawl-delay for polite crawling
+Crawl-delay: 1
