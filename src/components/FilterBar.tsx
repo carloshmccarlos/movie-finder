@@ -1,7 +1,6 @@
-// FilterBar component - Tencent Video style filter panel
-// 筛选栏组件 - 腾讯视频风格筛选面板 (i18n support)
+// FilterBar component - Modern chip-style filter panel
+// 筛选栏组件 - 现代标签式筛选面板
 
-import { FilterChip } from "./FilterChip";
 import { getFilterCategories } from "../data/filters";
 import { useI18n } from "../lib/i18n-context";
 import type { SearchFilters } from "../lib/types";
@@ -16,27 +15,33 @@ export function FilterBar({ filters, onFilterChange }: FilterBarProps) {
   const filterCategories = getFilterCategories(locale);
 
   return (
-    <div className="w-full max-w-4xl mx-auto mt-6 p-4 bg-[#1a1a1a] rounded-lg border border-[#333333]">
-      {/* Render each filter category */}
+    <div className="mb-8 md:mb-12 space-y-4 md:space-y-6">
       {filterCategories.map((category) => (
-        <div key={category.key} className="mb-4 last:mb-0">
+        <div key={category.key} className="flex flex-wrap items-center gap-2 md:gap-4">
           {/* Category label */}
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-[#a0a0a0] text-sm min-w-[50px]">
-              {category.label}
-            </span>
-          </div>
+          <span className="text-xs md:text-sm font-bold text-gray-500 uppercase tracking-widest min-w-[50px] md:min-w-[60px]">
+            {category.label}
+          </span>
 
-          {/* Filter options */}
-          <div className="flex flex-wrap gap-2">
-            {category.options.map((option) => (
-              <FilterChip
-                key={option.value}
-                label={option.label}
-                selected={filters[category.key] === option.value}
-                onClick={() => onFilterChange(category.key, option.value)}
-              />
-            ))}
+          {/* Filter chips */}
+          <div className="flex flex-wrap gap-1.5 md:gap-2">
+            {category.options.map((option) => {
+              const isActive = filters[category.key] === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => onFilterChange(category.key, option.value)}
+                  className={`chip py-1 md:py-1.5 px-3 md:px-4 rounded-full border text-xs md:text-sm transition-all
+                    ${isActive
+                      ? "active"
+                      : "border-white/10 hover:border-white/20 text-gray-300"
+                    }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       ))}

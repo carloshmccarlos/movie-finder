@@ -1,20 +1,24 @@
-// LoadingState component - Shown while searching
-// 加载状态组件 - 搜索时显示 (SSR-compatible)
+// LoadingState component - AI thinking animation
+// 加载状态组件 - AI思考动画
 
-import { Loader2 } from "lucide-react";
 import { useI18n } from "../lib/i18n-context";
 
 export function LoadingState() {
   const { t } = useI18n();
 
   return (
-    <div className="w-full max-w-4xl mx-auto mt-16 flex flex-col items-center justify-center">
-      {/* Spinning loader */}
-      <Loader2 size={48} className="text-[#ff6b35] animate-spin mb-4" />
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      {/* Thinking dots animation */}
+      <div className="flex gap-1 mb-4">
+        <div className="thinking-dot" />
+        <div className="thinking-dot" />
+        <div className="thinking-dot" />
+      </div>
 
       {/* Loading text */}
-      <p className="text-[#a0a0a0] text-lg">{t("results.loading")}</p>
-      <p className="text-[#666666] text-sm mt-2">{t("results.loadingHint")}</p>
+      <h3 className="text-xl font-light text-gray-400 italic">
+        {t("results.loading")}
+      </h3>
     </div>
   );
 }

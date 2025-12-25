@@ -1,7 +1,7 @@
-// MovieCard component - Display single movie result
-// 电影卡片组件 - 显示单个电影结果 (SSR-compatible)
+// MovieCard component - Modern glassmorphism movie card with hover overlay
+// 电影卡片组件 - 现代玻璃态设计，悬停显示推荐理由
 
-import { Star, Monitor } from "lucide-react";
+import { Star } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useI18n } from "../lib/i18n-context";
 import type { MovieResult } from "../lib/types";
@@ -11,23 +11,16 @@ interface MovieCardProps {
   movie: MovieResult;
 }
 
-// Match score badge colors
-const matchScoreStyles = {
-  high: "bg-green-600 text-white",
-  medium: "bg-yellow-600 text-white",
-  low: "bg-gray-600 text-white",
+// Match score badge colors and percentages
+const matchScoreConfig = {
+  high: { bg: "bg-green-500/90", percent: "98%" },
+  medium: { bg: "bg-yellow-500/90", percent: "85%" },
+  low: { bg: "bg-gray-500/90", percent: "70%" },
 };
 
 export function MovieCard({ movie }: MovieCardProps) {
   const navigate = useNavigate();
   const { t } = useI18n();
-
-  // Match score labels from i18n
-  const matchScoreLabels = {
-    high: t("match.high"),
-    medium: t("match.medium"),
-    low: t("match.low"),
-  };
 
   // Navigate to movie detail page
   const handleClick = () => {
@@ -40,84 +33,54 @@ export function MovieCard({ movie }: MovieCardProps) {
     });
   };
 
+  const scoreConfig = matchScoreConfig[movie.matchScore];
+
   return (
     <div
       onClick={handleClick}
       onKeyDown={(e) => e.key === "Enter" && handleClick()}
       role="button"
       tabIndex={0}
-      className="bg-[#1a1a1a] border border-[#333333] rounded-lg overflow-hidden
-                    hover:border-[#ff6b35] hover:shadow-lg hover:shadow-[#ff6b35]/10
-                    hover:scale-[1.02] cursor-pointer
-                    transition-all duration-200 flex flex-col"
+      className="movie-card group cursor-pointer"
     >
-      {/* Poster */}
-      <div className="relative">
-        <MoviePoster 
-          title={movie.title} 
-          year={movie.year} 
+      {/* Poster with overlay */}
+      <div className="relative aspect-[2/3] rounded-xl md:rounded-2xl overflow-hidden mb-2 md:mb-4 shadow-xl">
+        <MoviePoster
+          title={movie.title}
+          year={movie.year}
           posterUrl={movie.poster}
+          className="w-full h-full"
         />
 
-        {/* Match score badge */}
-        <span
-          className={`absolute top-2 right-2 px-2 py-1 rounded text-xs font-medium ${matchScoreStyles[movie.matchScore]}`}
-        >
-          {matchScoreLabels[movie.matchScore]}
-        </span>
+        {/* Match score badge - top right */}
+        <div className="absolute top-2 right-2 z-10">
+          <span className={`px-1.5 md:px-2 py-0.5 md:py-1 rounded ${scoreConfig.bg} text-[8px] md:text-[10px] font-bold text-white backdrop-blur`}>
+            {scoreConfig.percent} {t("match.label")}
+          </span>
+        </div>
+
+        {/* Hover overlay with match reason - hidden on mobile */}
+        <div className="poster-overlay absolute inset-0 hidden md:flex flex-col justify-end p-4">
+          <p className="text-xs text-[#ff6b35] font-bold mb-1">💡 {t("match.reason")}</p>
+          <p className="text-[11px] text-gray-200 line-clamp-3 leading-relaxed">
+            {movie.matchReason}
+          </p>
+        </div>
       </div>
 
-      {/* Movie info */}
-      <div className="p-4 flex-1 flex flex-col">
-        <h3 className="text-white font-semibold text-lg mb-1 line-clamp-1">
-          {movie.title}
-        </h3>
-        <p className="text-[#666666] text-sm mb-2">
-          {movie.originalTitle && `${movie.originalTitle} · `}
-          {movie.year} · {movie.region}
-        </p>
+      {/* Movie title */}
+      <h3 className="font-bold text-sm md:text-lg group-hover:text-[#ff6b35] transition-colors line-clamp-1">
+        {movie.title}
+      </h3>
 
-        {/* Rating */}
-        <div className="flex items-center gap-1 mb-2">
-          <Star size={16} className="text-yellow-500 fill-yellow-500" />
-          <span className="text-yellow-500 font-medium">{movie.rating}</span>
-        </div>
-
-        {/* Genres */}
-        <div className="flex flex-wrap gap-1 mb-3">
-          {movie.genres.slice(0, 3).map((genre) => (
-            <span
-              key={genre}
-              className="px-2 py-0.5 bg-[#252525] text-[#a0a0a0] text-xs rounded"
-            >
-              {genre}
-            </span>
-          ))}
-        </div>
-
-        {/* Intro */}
-        <p className="text-[#a0a0a0] text-sm line-clamp-2 mb-3 flex-1">
-          {movie.intro}
-        </p>
-
-        {/* Match reason */}
-        <p className="text-[#00d4aa] text-xs mb-3 line-clamp-2">
-          💡 {movie.matchReason}
-        </p>
-
-        {/* Platforms */}
-        <div className="flex items-center gap-2 mt-auto">
-          <Monitor size={14} className="text-[#666666]" />
-          <div className="flex flex-wrap gap-1">
-            {movie.platforms.slice(0, 3).map((platform) => (
-              <span
-                key={platform}
-                className="px-2 py-0.5 bg-[#ff6b35]/20 text-[#ff6b35] text-xs rounded"
-              >
-                {platform}
-              </span>
-            ))}
-          </div>
+      {/* Year, genres, rating */}
+      <div className="flex items-center justify-between text-[10px] md:text-xs text-gray-500 mt-0.5 md:mt-1">
+        <span className="truncate">
+          {movie.year} · {movie.genres.slice(0, 2).join(" / ")}
+        </span>
+        <div className="flex items-center gap-0.5 md:gap-1 text-yellow-500 shrink-0 ml-1">
+          <Star size={10} className="md:w-3 md:h-3 fill-current" />
+          <span className="font-bold">{movie.rating || "N/A"}</span>
         </div>
       </div>
     </div>

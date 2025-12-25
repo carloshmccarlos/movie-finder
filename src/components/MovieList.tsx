@@ -1,5 +1,5 @@
-// MovieList component - Grid of movie cards
-// 电影列表组件 - 电影卡片网格 (SSR-compatible)
+// MovieList component - Modern grid of movie cards
+// 电影列表组件 - 现代电影卡片网格
 
 import { useI18n } from "../lib/i18n-context";
 import { MovieCard } from "./MovieCard";
@@ -13,14 +13,19 @@ export function MovieList({ movies }: MovieListProps) {
   const { t } = useI18n();
 
   return (
-    <div className="w-full max-w-6xl mx-auto mt-8 px-4">
-      {/* Results count */}
-      <p className="text-[#a0a0a0] text-sm mb-4">
-        {t("results.found", { count: movies.length })}
-      </p>
+    <div>
+      {/* Results header */}
+      <div className="mb-4 md:mb-8">
+        <h2 className="text-xl md:text-2xl font-bold">
+          {t("results.title")}
+          <span className="text-gray-600 font-light ml-2">
+            ({t("results.count", { count: movies.length })})
+          </span>
+        </h2>
+      </div>
 
       {/* Movie grid - responsive columns */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
         {movies.map((movie) => (
           <MovieCard key={movie.id} movie={movie} />
         ))}

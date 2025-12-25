@@ -1,7 +1,8 @@
 // i18n React Context - SSR-compatible translation provider
 // i18n React 上下文 - 兼容服务端渲染的翻译提供者
+// Fixed: Use consistent default locale for SSR to avoid hydration mismatch
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import {
   type Locale,
   type TranslationKey,
@@ -18,36 +19,49 @@ interface I18nContextType {
   examples: string[];
 }
 
-// Default context value for SSR
+// Default locale for SSR - must be consistent between server and client initial render
+const DEFAULT_LOCALE: Locale = "zh";
+
+// Default context value
 const defaultContext: I18nContextType = {
-  locale: "zh",
+  locale: DEFAULT_LOCALE,
   setLocale: () => {},
-  t: (key) => translate("zh", key),
-  examples: exampleQueries.zh,
+  t: (key) => translate(DEFAULT_LOCALE, key),
+  examples: exampleQueries[DEFAULT_LOCALE],
 };
 
 const I18nContext = createContext<I18nContextType>(defaultContext);
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  // Initialize with default, then hydrate on client
-  const [locale, setLocaleState] = useState<Locale>("zh");
+  // Start with default locale - this ensures SSR and initial client render match
+  const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
+  const [mounted, setMounted] = useState(false);
 
-  // Hydrate locale from localStorage on client mount
+  // Only read from localStorage after component mounts (client-side only)
   useEffect(() => {
-    setLocaleState(getLocale());
+    setMounted(true);
+    // Read saved locale preference after hydration is complete
+    const savedLocale = getLocale();
+    if (savedLocale !== DEFAULT_LOCALE) {
+      setLocaleState(savedLocale);
+    }
   }, []);
 
-  // Update locale and save to localStorage
-  const handleSetLocale = (newLocale: Locale) => {
+  // Update locale and persist to localStorage
+  const handleSetLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale);
     saveLocale(newLocale);
-  };
+  }, []);
 
-  // Translation function bound to current locale
-  const t = (key: TranslationKey, params?: Record<string, string | number>) => {
-    return translate(locale, key, params);
-  };
+  // Translation function - memoized to prevent unnecessary re-renders
+  const t = useCallback(
+    (key: TranslationKey, params?: Record<string, string | number>) => {
+      return translate(locale, key, params);
+    },
+    [locale]
+  );
 
+  // Memoize context value
   const value: I18nContextType = {
     locale,
     setLocale: handleSetLocale,

@@ -1,11 +1,10 @@
 // Main search page - AI Movie Finder landing page
-// 主搜索页面 - AI电影搜索首页
-// Using TanStack Query + custom i18n (SSR-compatible)
+// 主搜索页面 - AI电影搜索首页 (Modern Glassmorphism UI)
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { Search } from "lucide-react";
 
 import { FilterBar } from "../components/FilterBar";
 import { MovieList } from "../components/MovieList";
@@ -55,16 +54,15 @@ function SearchPage() {
   const [submittedFilters, setSubmittedFilters] = useState<SearchFilters>(
     lastSearch?.filters || { genre: "", region: "", era: "" }
   );
-  const [showFilters, setShowFilters] = useState(false);
 
-  // TanStack Query for search - locale-aware
+  // TanStack Query for search
   const {
     data: searchResults,
     isLoading,
     error,
     isFetched,
   } = useQuery({
-    queryKey: ["movieSearch", submittedQuery, submittedFilters, locale],
+    queryKey: ["movieSearch", submittedQuery, submittedFilters],
     queryFn: () => searchMovies(submittedQuery, submittedFilters, locale),
     enabled: !!submittedQuery.trim(),
     staleTime: Infinity,
@@ -73,7 +71,6 @@ function SearchPage() {
 
   const results = searchResults?.results || [];
   const hasSearched = isFetched && !!submittedQuery;
-  const hasActiveFilters = Object.values(filters).some((v) => v);
 
   // Handlers
   const handleFilterChange = useCallback(
@@ -83,16 +80,11 @@ function SearchPage() {
     []
   );
 
-  const clearFilters = useCallback(() => {
-    setFilters({ genre: "", region: "", era: "" });
-  }, []);
-
   const performSearch = useCallback(() => {
     if (!query.trim()) return;
     const trimmedQuery = query.trim();
     setSubmittedQuery(trimmedQuery);
     setSubmittedFilters({ ...filters });
-    setShowFilters(false);
     saveLastSearch(trimmedQuery, filters);
   }, [query, filters]);
 
@@ -111,93 +103,77 @@ function SearchPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f]">
-      {/* Language switcher - top right */}
-      <div className="absolute top-4 right-4 z-20">
-        <LanguageSwitcher />
-      </div>
+    <div className="min-h-screen bg-[#050505] relative">
+      {/* Animated mesh background */}
+      <div className="mesh-bg" />
+      <div className="glow-sphere" style={{ top: "10%", right: "10%" }} />
+      <div className="glow-sphere" style={{ bottom: "10%", left: "5%" }} />
 
-      <main className="flex flex-col items-center px-4 pt-12 pb-10">
-        {/* Title */}
-        <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 text-center">
-          🎬 {t("app.title")}
-        </h1>
-
-        {/* Subtitle */}
-        <p className="text-[#a0a0a0] text-lg mb-8 text-center">
-          {t("app.subtitle")}
-        </p>
-
-        {/* Search Box */}
-        <div className="w-full max-w-2xl">
-          <textarea
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="w-full h-32 p-4 bg-[#1a1a1a] border border-[#333333] rounded-lg 
-                       text-white placeholder-[#666666] resize-none
-                       focus:outline-none focus:border-[#ff6b35] transition-colors"
-            placeholder={t("search.placeholder")}
-          />
-
-          {/* Action buttons */}
-          <div className="flex gap-3 mt-4">
-            <button
-              type="button"
-              onClick={() => setShowFilters(!showFilters)}
-              className={`px-4 py-3 rounded-lg transition-colors flex items-center gap-2
-                         border ${
-                           showFilters || hasActiveFilters
-                             ? "bg-[#ff6b35]/20 border-[#ff6b35] text-[#ff6b35]"
-                             : "bg-[#1a1a1a] border-[#333333] text-[#a0a0a0] hover:border-[#ff6b35]"
-                         }`}
-            >
-              <SlidersHorizontal size={20} />
-              <span className="hidden sm:inline">{t("search.filter")}</span>
-              {hasActiveFilters && (
-                <span className="w-2 h-2 bg-[#ff6b35] rounded-full" />
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={performSearch}
-              disabled={isLoading || !query.trim()}
-              className="flex-1 py-3 px-6 bg-[#ff6b35] hover:bg-[#ff8555] 
-                         disabled:bg-[#333333] disabled:cursor-not-allowed
-                         text-white font-semibold rounded-lg transition-colors
-                         flex items-center justify-center gap-2"
-            >
-              <Search size={20} />
-              {t("search.button")}
-            </button>
+      {/* Navigation */}
+      <nav className="sticky top-0 z-50 px-4 md:px-6 py-3 md:py-4 backdrop-blur-md border-b border-white/5">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl md:text-3xl">🎬</span>
+            <span className="text-base md:text-xl font-bold tracking-tighter letter-spacing-wide hidden sm:inline">
+              AI MOVIE FINDER
+            </span>
           </div>
+          <div className="flex items-center gap-4">
+            <LanguageSwitcher />
+          </div>
+        </div>
+      </nav>
 
-          <p className="text-[#666666] text-xs mt-2 text-center">
-            {t("search.hint")}
+      <main className="max-w-4xl mx-auto px-4 md:px-6 pt-8 md:pt-16 pb-16 md:pb-24 relative z-10">
+        {/* Hero Section */}
+        <div className="text-center mb-8 md:mb-16">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold mb-4 md:mb-6 tracking-tight gradient-text">
+            {t("hero.title")}
+          </h1>
+          <p className="text-base md:text-lg lg:text-xl text-gray-400 mx-auto font-light px-2">
+            {t("hero.subtitle")}
           </p>
         </div>
 
-        {/* Filter Bar */}
-        {showFilters && (
-          <div className="w-full max-w-4xl mt-4">
-            <FilterBar filters={filters} onFilterChange={handleFilterChange} />
-            {hasActiveFilters && (
+        {/* Search Container */}
+        <div className="mb-8 md:mb-12 relative">
+          <div className="glass-card p-2 group focus-within:ring-2 ring-[#ff6b35]/20 transition-all">
+            <textarea
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={t("search.placeholder")}
+              className="w-full h-32 md:h-40 p-4 md:p-6 bg-transparent border-none focus:ring-0 focus:outline-none
+                         text-base md:text-xl text-white placeholder-gray-600 resize-none font-light"
+            />
+            <div className="flex justify-end items-center p-3 md:p-4 border-t border-white/5 bg-black/20 rounded-b-2xl">
               <button
-                type="button"
-                onClick={clearFilters}
-                className="mt-3 px-4 py-2 text-[#a0a0a0] text-sm hover:text-white
-                           flex items-center gap-1 mx-auto transition-colors"
+                onClick={performSearch}
+                disabled={isLoading || !query.trim()}
+                className="btn-primary px-6 md:px-8 py-2.5 md:py-3 rounded-xl font-bold flex items-center gap-2 md:gap-3 text-white disabled:opacity-50 text-sm md:text-base"
               >
-                <X size={16} />
-                {t("search.clearFilters")}
+                <Search size={18} className="md:w-5 md:h-5" />
+                {t("search.button")}
               </button>
-            )}
+            </div>
           </div>
-        )}
+
+          {/* Hint - hidden on mobile */}
+          <div className="mt-4 hidden sm:flex justify-center text-xs text-gray-600">
+            <span className="flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 rounded border border-white/10 bg-white/5 text-[10px]">Ctrl</kbd>
+              +
+              <kbd className="px-1.5 py-0.5 rounded border border-white/10 bg-white/5 text-[10px]">Enter</kbd>
+              {t("search.shortcut")}
+            </span>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <FilterBar filters={filters} onFilterChange={handleFilterChange} />
 
         {/* Results Section */}
-        <div className="w-full mt-8">
+        <div className="mt-12">
           {isLoading && <LoadingState />}
 
           {!isLoading && error && (
@@ -212,22 +188,32 @@ function SearchPage() {
           )}
 
           {!isLoading && !error && hasSearched && results.length === 0 && (
-            <EmptyState 
-              type="no-results" 
+            <EmptyState
+              type="no-results"
               onExampleClick={handleExampleClick}
               examples={examples}
             />
           )}
 
           {!isLoading && !error && !hasSearched && (
-            <EmptyState 
-              type="initial" 
+            <EmptyState
+              type="initial"
               onExampleClick={handleExampleClick}
               examples={examples}
             />
           )}
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-white/5 py-12 text-center text-gray-600 text-sm">
+        <p>© 2025 AI Movie Finder. Powered by DeepSeek-V3.2 & TMDB.</p>
+        {/* <div className="flex justify-center gap-4 mt-4">
+          <a href="#" className="hover:text-white transition-colors">{t("footer.about")}</a>
+          <a href="#" className="hover:text-white transition-colors">{t("footer.api")}</a>
+          <a href="#" className="hover:text-white transition-colors">{t("footer.privacy")}</a>
+        </div> */}
+      </footer>
     </div>
   );
 }

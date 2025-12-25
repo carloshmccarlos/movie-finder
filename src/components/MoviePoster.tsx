@@ -1,6 +1,5 @@
 // MoviePoster component - Displays movie poster with fallback
-// 电影海报组件 - 显示电影海报，支持回退
-// Phase 2 Update: Can use pre-fetched poster URL or fetch from TMDB
+// 电影海报组件 - 显示电影海报，支持回退和加载动画
 
 import { useState, useEffect } from "react";
 import { searchMoviePoster } from "../lib/tmdb";
@@ -71,7 +70,7 @@ export function MoviePoster({ title, year, posterUrl, className = "" }: MoviePos
   };
 
   // Base classes for poster container - maintains 2:3 aspect ratio
-  const baseClasses = `aspect-[2/3] rounded-lg overflow-hidden ${className}`;
+  const baseClasses = `aspect-[2/3] rounded-2xl overflow-hidden ${className}`;
 
   // Loading state - animated skeleton
   if (loading) {
@@ -88,7 +87,7 @@ export function MoviePoster({ title, year, posterUrl, className = "" }: MoviePos
   if (error || !finalPosterUrl) {
     return (
       <div
-        className={`${baseClasses} bg-linear-to-br from-[#252525] to-[#1a1a1a] flex items-center justify-center`}
+        className={`${baseClasses} bg-gradient-to-br from-[#252525] to-[#1a1a1a] flex items-center justify-center`}
       >
         <span className="text-6xl">🎬</span>
       </div>

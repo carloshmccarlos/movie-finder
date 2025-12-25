@@ -9,23 +9,30 @@ export const translations = {
     // Header & Title
     "app.title": "AI电影搜索",
     "app.subtitle": "描述你想看的电影，AI帮你找到它",
-    
+
+    // Hero section
+    "hero.title": "描述你的电影梦境",
+    "hero.subtitle": "不用在意片名，用自然语言说出任何你想看的故事情节、情绪或场景，AI 会为你精准匹配。",
+
     // Search
-    "search.placeholder": "输入电影描述...\n例如：一部关于盗梦的科幻片，主角在梦境中层层深入，有莱昂纳多主演",
+    "search.placeholder": "例如：一部关于在梦境中盗取商业机密的烧脑电影，主角层层深入潜意识...",
     "search.button": "找电影",
     "search.hint": "按 Ctrl+Enter 快速搜索",
+    "search.shortcut": "快速搜索",
     "search.filter": "筛选",
     "search.clearFilters": "清除所有筛选",
-    
+
     // Filters
     "filter.genre": "类型",
     "filter.region": "地区",
     "filter.era": "年代",
     "filter.all": "全部",
-    
+
     // Results
+    "results.title": "为你匹配的结果",
+    "results.count": "{count}部",
     "results.found": "找到 {count} 部相关电影",
-    "results.loading": "正在搜索电影...",
+    "results.loading": "DeepSeek 正在理解你的梦境...",
     "results.loadingHint": "AI正在分析你的描述",
     "results.empty": "没有找到匹配的电影",
     "results.emptyHint": "试试其他描述或调整筛选条件",
@@ -33,51 +40,67 @@ export const translations = {
     "results.initial": "输入电影描述开始搜索",
     "results.initialHint": "描述剧情、演员、场景或任何你记得的细节",
     "results.tryThese": "试试这些描述：",
-    
+
     // Match scores
     "match.high": "高度匹配",
     "match.medium": "中度匹配",
     "match.low": "可能相关",
-    
+    "match.label": "匹配",
+    "match.reason": "推荐理由",
+
     // Movie detail
     "detail.back": "返回搜索",
     "detail.notFound": "电影未找到",
     "detail.synopsis": "剧情简介",
     "detail.watchOnline": "在线观看",
-    "detail.searchOnline": "搜索在线观看渠道",
+    "detail.searchOnline": "在线观看 / 搜索资源",
     "detail.searchHint": "根据您的位置自动跳转到 Bing 或 Google 搜索",
-    "detail.copyInfo": "复制电影信息",
+    "detail.copyInfo": "复制信息",
     "detail.copied": "已复制",
     "detail.rating": "评分",
-    "detail.votes": "人评价",
+    "detail.votes": "评论",
     "detail.popularity": "热度指数",
+    "detail.matchScore": "匹配程度",
     "detail.region": "地区",
     "detail.releaseDate": "上映日期",
     "detail.originalAudio": "原声",
     "detail.dataSource": "数据来源: TMDB",
+    "detail.aiReason": "AI 匹配理由",
+
+    // Footer
+    "footer.about": "关于我们",
+    "footer.api": "API 文档",
+    "footer.privacy": "隐私政策",
   },
-  
+
   en: {
     // Header & Title
     "app.title": "AI Movie Finder",
     "app.subtitle": "Describe the movie you want to watch, AI will find it for you",
-    
+
+    // Hero section
+    "hero.title": "Describe Your Movie Dream",
+    "hero.subtitle": "Don't worry about the title. Just describe any plot, mood, or scene in natural language, and AI will find the perfect match.",
+
     // Search
-    "search.placeholder": "Enter movie description...\nExample: A sci-fi movie about dreams within dreams, starring Leonardo DiCaprio",
+    "search.placeholder": "Example: A mind-bending movie about stealing secrets from dreams, going deeper into the subconscious...",
     "search.button": "Find Movie",
     "search.hint": "Press Ctrl+Enter to search",
+    "search.shortcut": "Quick Search",
     "search.filter": "Filter",
     "search.clearFilters": "Clear all filters",
-    
+
     // Filters
     "filter.genre": "Genre",
     "filter.region": "Region",
     "filter.era": "Era",
     "filter.all": "All",
-    
+
     // Results
+    "results.title": "Matched Results",
+    "results.count": "{count} movies",
     "results.found": "Found {count} related movies",
-    "results.loading": "Searching movies...",
+    "results.loading": "DeepSeek is understanding your dream...",
     "results.loadingHint": "AI is analyzing your description",
     "results.empty": "No matching movies found",
     "results.emptyHint": "Try a different description or adjust filters",
@@ -85,28 +108,37 @@ export const translations = {
     "results.initial": "Enter a movie description to start",
     "results.initialHint": "Describe the plot, actors, scenes, or any details you remember",
     "results.tryThese": "Try these descriptions:",
-    
+
     // Match scores
     "match.high": "High Match",
     "match.medium": "Medium Match",
     "match.low": "Possible Match",
-    
+    "match.label": "Match",
+    "match.reason": "Why this match",
+
     // Movie detail
     "detail.back": "Back to Search",
     "detail.notFound": "Movie not found",
     "detail.synopsis": "Synopsis",
     "detail.watchOnline": "Watch Online",
-    "detail.searchOnline": "Search for streaming options",
+    "detail.searchOnline": "Watch Online / Search",
     "detail.searchHint": "Will redirect to Bing or Google based on your location",
-    "detail.copyInfo": "Copy movie info",
+    "detail.copyInfo": "Copy Info",
     "detail.copied": "Copied",
     "detail.rating": "Rating",
-    "detail.votes": "votes",
+    "detail.votes": "Reviews",
     "detail.popularity": "Popularity",
+    "detail.matchScore": "Match Score",
     "detail.region": "Region",
     "detail.releaseDate": "Release Date",
     "detail.originalAudio": "Original Audio",
     "detail.dataSource": "Data source: TMDB",
+    "detail.aiReason": "AI Match Reason",
+
+    // Footer
+    "footer.about": "About Us",
+    "footer.api": "API Docs",
+    "footer.privacy": "Privacy Policy",
   },
 } as const;
 

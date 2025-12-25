@@ -12,6 +12,8 @@ import appCss from "../styles.css?url";
 
 // Root route configuration for AI Movie Finder
 // Complete SEO setup with meta tags, Open Graph, Twitter Cards
+// Root route configuration for AI Movie Finder
+// Modern glassmorphism UI with Google Fonts
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -31,14 +33,14 @@ export const Route = createRootRoute({
       },
       { name: "author", content: "AI Movie Finder" },
       { name: "robots", content: "index, follow" },
-      
+
       // Alternate languages for SEO
       { property: "og:locale", content: "en_US" },
       { property: "og:locale:alternate", content: "zh_CN" },
 
-      // Theme color for mobile browsers
-      { name: "theme-color", content: "#0f0f0f" },
-      { name: "msapplication-TileColor", content: "#0f0f0f" },
+      // Theme color for mobile browsers - darker for new design
+      { name: "theme-color", content: "#050505" },
+      { name: "msapplication-TileColor", content: "#050505" },
       { name: "msapplication-TileImage", content: "/logo192.png" },
 
       // Open Graph (Facebook, LinkedIn, etc.)
@@ -73,6 +75,13 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      // Google Fonts - Outfit for modern typography
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Noto+Sans+SC:wght@300;400;700&display=swap",
+      },
       { rel: "icon", href: "/favicon.ico", sizes: "48x48" },
       { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
@@ -128,7 +137,7 @@ function RootComponent() {
           <head>
             <HeadContent />
           </head>
-          <body className="bg-[#0f0f0f] text-white min-h-screen">
+          <body className="bg-[#050505] text-white min-h-screen">
             <Outlet />
             <Scripts />
           </body>

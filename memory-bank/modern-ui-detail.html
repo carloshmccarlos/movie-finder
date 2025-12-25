@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI电影搜索 - 现代UI设计 (详情页)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Noto+Sans+SC:wght@300;400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --glass-bg: rgba(26, 26, 26, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent: #ff6b35;
+            --secondary: #00d4aa;
+        }
+
+        body {
+            background-color: #050505;
+            color: #ffffff;
+            font-family: 'Outfit', 'Noto Sans SC', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Cinematic Backdrop */
+        .backdrop-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 80vh;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .backdrop-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: brightness(0.4) saturate(1.2);
+            mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+        }
+
+        .backdrop-overlay {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 70% 30%, transparent 0%, #050505 80%);
+        }
+
+        /* Glassmorphism Classes */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(30px);
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+        }
+
+        /* Floating Poster */
+        .poster-container {
+            perspective: 1000px;
+        }
+
+        .poster-image {
+            border-radius: 20px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8);
+            transition: transform 0.1s ease-out;
+            transform-style: preserve-3d;
+        }
+
+        /* Stats Badge */
+        .badge-stat {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 20px;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        /* Action Buttons */
+        .btn-watch {
+            background: var(--accent);
+            color: white;
+            padding: 16px 32px;
+            border-radius: 16px;
+            font-weight: 700;
+            box-shadow: 0 10px 30px rgba(255, 107, 53, 0.3);
+            transition: all 0.3s ease;
+            display: inline-flex;
+            items-center: center;
+            gap: 12px;
+        }
+
+        .btn-watch:hover {
+            transform: scale(1.05);
+            background: #ff8555;
+            box-shadow: 0 15px 40px rgba(255, 107, 53, 0.5);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            padding: 16px 32px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Match Reason Block */
+        .match-analysis {
+            border-left: 4px solid var(--secondary);
+            background: rgba(0, 212, 170, 0.05);
+            padding: 24px;
+            border-radius: 0 24px 24px 0;
+        }
+
+        /* Typography spacing */
+        .letter-spacing-wide {
+            letter-spacing: 0.1em;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Cinematic Backdrop -->
+    <div class="backdrop-container">
+        <img src="https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&q=80&w=1600"
+            alt="Backdrop" class="backdrop-image">
+        <div class="backdrop-overlay"></div>
+    </div>
+
+    <!-- Header Navigation -->
+    <header class="p-6">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <button class="flex items-center gap-2 text-gray-400 hover:text-white transition-all group">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5 transform group-hover:-translate-x-1 transition-transform" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                <span>返回搜索</span>
+            </button>
+            <div class="flex items-center gap-3">
+                <span class="text-xl">🎬</span>
+                <span class="font-bold tracking-tighter letter-spacing-wide">AI MOVIE FINDER</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 pt-12 pb-24">
+        <div class="flex flex-col lg:flex-row gap-16">
+            <!-- Left: Poster & Basic Actions -->
+            <div class="w-full lg:w-[400px] shrink-0">
+                <div class="poster-container mb-10">
+                    <img src="https://images.unsplash.com/photo-1440404653325-ab127d49abc1?auto=format&fit=crop&q=80&w=800"
+                        alt="Poster" class="poster-image w-full aspect-[2/3] object-cover">
+                </div>
+
+                <div class="flex flex-col gap-4">
+                    <button class="btn-watch w-full justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        在线观看 / 搜索资源
+                    </button>
+                    <div class="grid grid-cols-2 gap-4">
+                        <button class="btn-secondary flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            复制信息
+                        </button>
+                        <button class="btn-secondary flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                            </svg>
+                            分享电影
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Details & Analysis -->
+            <div class="flex-1 space-y-12">
+                <!-- Title & Meta -->
+                <div>
+                    <h1 class="text-6xl font-bold mb-4 tracking-tighter">盗梦空间</h1>
+                    <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-gray-400">
+                        <p class="text-xl">Inception</p>
+                        <span class="w-1.5 h-1.5 rounded-full bg-white/20"></span>
+                        <p>2010</p>
+                        <span class="w-1.5 h-1.5 rounded-full bg-white/20"></span>
+                        <p>美国 / 英国</p>
+                        <span class="w-1.5 h-1.5 rounded-full bg-white/20"></span>
+                        <p>148 分钟</p>
+                    </div>
+                </div>
+
+                <!-- Stats Dashboard -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div class="badge-stat">
+                        <span class="text-xs text-gray-500 uppercase tracking-widest font-bold">TMDB 评分</span>
+                        <div class="flex items-end gap-2 text-yellow-500">
+                            <span class="text-3xl font-bold font-mono">9.3</span>
+                            <span class="text-sm pb-1 text-gray-600">/ 10</span>
+                        </div>
+                    </div>
+                    <div class="badge-stat">
+                        <span class="text-xs text-gray-500 uppercase tracking-widest font-bold">热度指数</span>
+                        <div class="flex items-end gap-2 text-orange-500">
+                            <span class="text-3xl font-bold font-mono">Top 5</span>
+                            <span class="text-sm pb-1 text-gray-600">科幻榜</span>
+                        </div>
+                    </div>
+                    <div class="badge-stat">
+                        <span class="text-xs text-gray-500 uppercase tracking-widest font-bold">匹配程度</span>
+                        <div class="flex items-end gap-2 text-green-500">
+                            <span class="text-3xl font-bold font-mono">98%</span>
+                            <span class="text-sm pb-1 text-gray-600">Perfect</span>
+                        </div>
+                    </div>
+                    <div class="badge-stat">
+                        <span class="text-xs text-gray-500 uppercase tracking-widest font-bold">观众推荐</span>
+                        <div class="flex items-end gap-2 text-blue-500">
+                            <span class="text-3xl font-bold font-mono">1.2M+</span>
+                            <span class="text-sm pb-1 text-gray-600">评论</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Match Analysis -->
+                <div class="match-analysis space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-black">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-secondary">AI 匹配理由</h3>
+                    </div>
+                    <p class="text-gray-200 leading-relaxed">
+                        您的描述中提到的“梦境、层层深入、烧脑、潜意识”是本片的核芯设定。克里斯托弗·诺兰在《盗梦空间》中构建了一个完整的多层梦境规则系统，完美契合了您对“非现实逻辑”和“极致智力挑战”的需求。影片不仅在视觉上呈现了梦境折叠的奇观，在情感层面也探讨了执念与解脱。
+                    </p>
+                </div>
+
+                <!-- Synopsis -->
+                <div class="space-y-6">
+                    <h3 class="text-2xl font-bold flex items-center gap-4">
+                        剧情简介
+                        <div class="flex-1 h-[1px] bg-white/10"></div>
+                    </h3>
+                    <p class="text-gray-400 text-lg leading-relaxed font-light">
+                        道姆·柯布是一个经验老道的窃贼。在人们精神状态最脆弱的时刻——即他们处于深睡状态，在大脑潜意识中活动时，他便趁机窃取人们最宝贵的秘密。柯布这一罕见的本领使他成为企业间谍活动中炙手可热的人物，同时也让他成为了国际逃犯，失去了他所爱的一切。
+                        <br><br>
+                        如今，柯布获得了一个赎罪的机会。他只要完成最后一个任务，生活就能回归正轨。与以往不同的是，这一次柯布和他的专家团队不是要窃取想法，而是要种下想法。
+                    </p>
+                </div>
+
+                <!-- Tags -->
+                <div class="flex flex-wrap gap-3">
+                    <span class="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm">科幻</span>
+                    <span class="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm">动作</span>
+                    <span class="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm">悬疑</span>
+                    <span class="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm">梦境</span>
+                    <span class="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm">克里斯托弗·诺兰</span>
+                    <span class="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm">莱昂纳多·迪卡普里奥</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Related Movies -->
+        <div class="mt-32 space-y-12">
+            <h3 class="text-3xl font-bold">相似的梦境之旅</h3>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-8">
+                <!-- Related 1 -->
+                <div class="space-y-4 group cursor-pointer">
+                    <div
+                        class="aspect-[2/3] rounded-2xl overflow-hidden shadow-lg border border-white/5 group-hover:border-accent/40 transition-all">
+                        <img src="https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?auto=format&fit=crop&q=80&w=400"
+                            alt="Matrix"
+                            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                    </div>
+                    <h4 class="font-bold">黑客帝国</h4>
+                    <p class="text-sm text-gray-500">1999 · 科幻</p>
+                </div>
+                <!-- Related 2 -->
+                <div class="space-y-4 group cursor-pointer">
+                    <div
+                        class="aspect-[2/3] rounded-2xl overflow-hidden shadow-lg border border-white/5 group-hover:border-accent/40 transition-all">
+                        <img src="https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&q=80&w=400"
+                            alt="Tenet"
+                            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                    </div>
+                    <h4 class="font-bold">信条</h4>
+                    <p class="text-sm text-gray-500">2020 · 动作</p>
+                </div>
+                <!-- Related 3 -->
+                <div class="space-y-4 group cursor-pointer">
+                    <div
+                        class="aspect-[2/3] rounded-2xl overflow-hidden shadow-lg border border-white/5 group-hover:border-accent/40 transition-all">
+                        <img src="https://images.unsplash.com/photo-1542204172-3c1f11c56f39?auto=format&fit=crop&q=80&w=400"
+                            alt="Paprika"
+                            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                    </div>
+                    <h4 class="font-bold">红辣椒</h4>
+                    <p class="text-sm text-gray-500">2006 · 动画</p>
+                </div>
+                <!-- Related 4 -->
+                <div class="space-y-4 group cursor-pointer">
+                    <div
+                        class="aspect-[2/3] rounded-2xl overflow-hidden shadow-lg border border-white/5 group-hover:border-accent/40 transition-all">
+                        <img src="https://images.unsplash.com/photo-1478720143988-8fad99bc7c77?auto=format&fit=crop&q=80&w=400"
+                            alt="The Thirteenth Floor"
+                            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                    </div>
+                    <h4 class="font-bold">异次元骇客</h4>
+                    <p class="text-sm text-gray-500">1999 · 惊悚</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="border-t border-white/5 py-12 text-center text-gray-600 text-sm">
+        <p>© 2025 AI Movie Finder. Poster data by TMDB.</p>
+    </footer>
+</body>
+
+</html>
