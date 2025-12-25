@@ -1,6 +1,6 @@
 // Main search page - AI Movie Finder landing page
 // 主搜索页面 - AI电影搜索首页
-// Phase 2: Using TanStack Query for search state persistence
+// Using TanStack Query + custom i18n (SSR-compatible)
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useCallback } from "react";
@@ -11,10 +11,12 @@ import { FilterBar } from "../components/FilterBar";
 import { MovieList } from "../components/MovieList";
 import { LoadingState } from "../components/LoadingState";
 import { EmptyState } from "../components/EmptyState";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { searchMovies } from "../lib/search";
+import { useI18n } from "../lib/i18n-context";
 import type { SearchFilters } from "../lib/types";
 
-// Session storage keys for persisting search input state
+// Session storage key for persisting search state
 const STORAGE_KEY = "last_search";
 
 // Route definition
@@ -22,8 +24,9 @@ export const Route = createFileRoute("/")({
   component: SearchPage,
 });
 
-// Load last search from sessionStorage
+// Load/save search state helpers (client-side only)
 function loadLastSearch(): { query: string; filters: SearchFilters } | null {
+  if (typeof window === "undefined") return null;
   try {
     const stored = sessionStorage.getItem(STORAGE_KEY);
     if (stored) return JSON.parse(stored);
@@ -31,17 +34,19 @@ function loadLastSearch(): { query: string; filters: SearchFilters } | null {
   return null;
 }
 
-// Save search to sessionStorage
 function saveLastSearch(query: string, filters: SearchFilters) {
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ query, filters }));
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ query, filters }));
+  } catch {}
 }
 
 // Main search page component
 function SearchPage() {
-  // Load last search on mount
+  const { t, examples, locale } = useI18n();
   const lastSearch = loadLastSearch();
 
-  // Search query and filters state
+  // Search state
   const [query, setQuery] = useState(lastSearch?.query || "");
   const [submittedQuery, setSubmittedQuery] = useState(lastSearch?.query || "");
   const [filters, setFilters] = useState<SearchFilters>(
@@ -50,29 +55,27 @@ function SearchPage() {
   const [submittedFilters, setSubmittedFilters] = useState<SearchFilters>(
     lastSearch?.filters || { genre: "", region: "", era: "" }
   );
-
-  // UI state
   const [showFilters, setShowFilters] = useState(false);
 
-  // TanStack Query for search - caches results automatically
-  // Query key includes query and filters so different searches are cached separately
+  // TanStack Query for search - locale-aware
   const {
     data: searchResults,
     isLoading,
     error,
     isFetched,
   } = useQuery({
-    queryKey: ["movieSearch", submittedQuery, submittedFilters],
-    queryFn: () => searchMovies(submittedQuery, submittedFilters),
-    enabled: !!submittedQuery.trim(), // Only run when query is submitted
-    staleTime: Infinity, // Keep results cached forever
-    gcTime: Infinity, // Never garbage collect
+    queryKey: ["movieSearch", submittedQuery, submittedFilters, locale],
+    queryFn: () => searchMovies(submittedQuery, submittedFilters, locale),
+    enabled: !!submittedQuery.trim(),
+    staleTime: Infinity,
+    gcTime: Infinity,
   });
 
   const results = searchResults?.results || [];
   const hasSearched = isFetched && !!submittedQuery;
+  const hasActiveFilters = Object.values(filters).some((v) => v);
 
-  // Handle filter change
+  // Handlers
   const handleFilterChange = useCallback(
     (key: keyof SearchFilters, value: string) => {
       setFilters((prev) => ({ ...prev, [key]: value }));
@@ -80,25 +83,19 @@ function SearchPage() {
     []
   );
 
-  // Clear all filters
   const clearFilters = useCallback(() => {
     setFilters({ genre: "", region: "", era: "" });
   }, []);
 
-  const hasActiveFilters = Object.values(filters).some((v) => v);
-
-  // Perform search - submit query and filters, close filter bar
   const performSearch = useCallback(() => {
     if (!query.trim()) return;
     const trimmedQuery = query.trim();
     setSubmittedQuery(trimmedQuery);
     setSubmittedFilters({ ...filters });
     setShowFilters(false);
-    // Save to sessionStorage for persistence across navigation
     saveLastSearch(trimmedQuery, filters);
   }, [query, filters]);
 
-  // Handle Enter key press
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
@@ -109,22 +106,26 @@ function SearchPage() {
     [performSearch]
   );
 
-  // Handle example query click
   const handleExampleClick = useCallback((example: string) => {
     setQuery(example);
   }, []);
 
   return (
     <div className="min-h-screen bg-[#0f0f0f]">
+      {/* Language switcher - top right */}
+      <div className="absolute top-4 right-4 z-20">
+        <LanguageSwitcher />
+      </div>
+
       <main className="flex flex-col items-center px-4 pt-12 pb-10">
         {/* Title */}
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 text-center">
-          🎬 AI电影搜索
+          🎬 {t("app.title")}
         </h1>
 
         {/* Subtitle */}
         <p className="text-[#a0a0a0] text-lg mb-8 text-center">
-          描述你想看的电影，AI帮你找到它
+          {t("app.subtitle")}
         </p>
 
         {/* Search Box */}
@@ -136,7 +137,7 @@ function SearchPage() {
             className="w-full h-32 p-4 bg-[#1a1a1a] border border-[#333333] rounded-lg 
                        text-white placeholder-[#666666] resize-none
                        focus:outline-none focus:border-[#ff6b35] transition-colors"
-            placeholder="输入电影描述...&#10;例如：一部关于盗梦的科幻片，主角在梦境中层层深入，有莱昂纳多主演"
+            placeholder={t("search.placeholder")}
           />
 
           {/* Action buttons */}
@@ -152,7 +153,7 @@ function SearchPage() {
                          }`}
             >
               <SlidersHorizontal size={20} />
-              <span className="hidden sm:inline">筛选</span>
+              <span className="hidden sm:inline">{t("search.filter")}</span>
               {hasActiveFilters && (
                 <span className="w-2 h-2 bg-[#ff6b35] rounded-full" />
               )}
@@ -168,12 +169,12 @@ function SearchPage() {
                          flex items-center justify-center gap-2"
             >
               <Search size={20} />
-              找电影
+              {t("search.button")}
             </button>
           </div>
 
           <p className="text-[#666666] text-xs mt-2 text-center">
-            按 Ctrl+Enter 快速搜索
+            {t("search.hint")}
           </p>
         </div>
 
@@ -189,7 +190,7 @@ function SearchPage() {
                            flex items-center gap-1 mx-auto transition-colors"
               >
                 <X size={16} />
-                清除所有筛选
+                {t("search.clearFilters")}
               </button>
             )}
           </div>
@@ -202,7 +203,7 @@ function SearchPage() {
           {!isLoading && error && (
             <EmptyState
               type="error"
-              message={error instanceof Error ? error.message : "搜索失败"}
+              message={error instanceof Error ? error.message : t("results.error")}
             />
           )}
 
@@ -211,11 +212,19 @@ function SearchPage() {
           )}
 
           {!isLoading && !error && hasSearched && results.length === 0 && (
-            <EmptyState type="no-results" onExampleClick={handleExampleClick} />
+            <EmptyState 
+              type="no-results" 
+              onExampleClick={handleExampleClick}
+              examples={examples}
+            />
           )}
 
           {!isLoading && !error && !hasSearched && (
-            <EmptyState type="initial" onExampleClick={handleExampleClick} />
+            <EmptyState 
+              type="initial" 
+              onExampleClick={handleExampleClick}
+              examples={examples}
+            />
           )}
         </div>
       </main>

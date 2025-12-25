@@ -1,6 +1,5 @@
 // Movie Detail Page - Shows full movie information from TMDB
-// 电影详情页 - 显示完整电影信息（包含所有TMDB数据）
-// Phase 2: Full TMDB data display with backdrop, ratings, popularity
+// 电影详情页 - 显示完整电影信息 (SSR-compatible)
 
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
@@ -17,14 +16,16 @@ import {
   Film,
 } from "lucide-react";
 import { MoviePoster } from "../../components/MoviePoster";
+import { LanguageSwitcher } from "../../components/LanguageSwitcher";
 import {
   detectUserRegion,
   isChina,
   buildSearchUrl,
 } from "../../lib/geolocation";
+import { useI18n } from "../../lib/i18n-context";
 import type { MovieResult } from "../../lib/types";
 
-// Route definition with movie ID parameter
+// Route definition
 export const Route = createFileRoute("/movie/$id")({
   component: MovieDetailPage,
 });
@@ -36,23 +37,27 @@ const matchScoreStyles = {
   low: "bg-gray-600 text-white",
 };
 
-const matchScoreLabels = {
-  high: "高度匹配",
-  medium: "中度匹配",
-  low: "可能相关",
-};
-
 function MovieDetailPage() {
   const navigate = useNavigate();
   const { id } = Route.useParams();
+  const { t } = useI18n();
 
-  // State for movie data
+  // Match score labels from i18n
+  const matchScoreLabels = {
+    high: t("match.high"),
+    medium: t("match.medium"),
+    low: t("match.low"),
+  };
+
+  // State
   const [movie, setMovie] = useState<MovieResult | null>(null);
   const [searchUrl, setSearchUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Load movie data from sessionStorage on mount
+  // Load movie data from sessionStorage (client-side only)
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    
     const stored = sessionStorage.getItem(`movie_${id}`);
     if (stored) {
       try {
@@ -63,7 +68,7 @@ function MovieDetailPage() {
     }
   }, [id]);
 
-  // Detect user region and build search URL
+  // Setup external search URL
   useEffect(() => {
     async function setupSearchUrl() {
       if (!movie) return;
@@ -86,22 +91,21 @@ function MovieDetailPage() {
     }
   };
 
-  // Copy all movie info to clipboard
   const handleCopyInfo = async () => {
     if (!movie) return;
 
     const info = `🎬 ${movie.title} (${movie.year})
-${movie.originalTitle ? `原名: ${movie.originalTitle}` : ""}
-⭐ 评分: ${movie.rating}/10${movie.voteCount ? ` (${movie.voteCount.toLocaleString()}人评价)` : ""}
-${movie.popularity ? `🔥 热度: ${movie.popularity}` : ""}
-🎭 类型: ${movie.genres.join(" / ")}
-🌍 地区: ${movie.region}
-${movie.releaseDate ? `📅 上映: ${movie.releaseDate}` : ""}
+${movie.originalTitle ? `Original: ${movie.originalTitle}` : ""}
+⭐ ${t("detail.rating")}: ${movie.rating}/10${movie.voteCount ? ` (${movie.voteCount.toLocaleString()} ${t("detail.votes")})` : ""}
+${movie.popularity ? `🔥 ${t("detail.popularity")}: ${movie.popularity}` : ""}
+🎭 Genre: ${movie.genres.join(" / ")}
+🌍 ${t("detail.region")}: ${movie.region}
+${movie.releaseDate ? `📅 ${t("detail.releaseDate")}: ${movie.releaseDate}` : ""}
 
-📖 简介:
+📖 ${t("detail.synopsis")}:
 ${movie.intro}
 
-💡 匹配原因: ${movie.matchReason}`;
+💡 ${movie.matchReason}`;
 
     try {
       await navigator.clipboard.writeText(info);
@@ -112,16 +116,16 @@ ${movie.intro}
     }
   };
 
-  // Error state - movie not found
+  // Error state
   if (!movie) {
     return (
       <div className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center px-4">
-        <p className="text-[#a0a0a0] text-lg mb-4">电影未找到</p>
+        <p className="text-[#a0a0a0] text-lg mb-4">{t("detail.notFound")}</p>
         <button
           onClick={handleBack}
           className="px-4 py-2 bg-[#ff6b35] text-white rounded-lg hover:bg-[#ff8555] transition-colors"
         >
-          返回搜索
+          {t("detail.back")}
         </button>
       </div>
     );
@@ -129,7 +133,7 @@ ${movie.intro}
 
   return (
     <div className="min-h-screen bg-[#0f0f0f]">
-      {/* Backdrop image (if available from TMDB) */}
+      {/* Backdrop image */}
       {movie.backdrop && (
         <div className="absolute top-0 left-0 w-full h-80 overflow-hidden">
           <img
@@ -149,15 +153,18 @@ ${movie.intro}
             className="flex items-center gap-2 text-[#a0a0a0] hover:text-white transition-colors"
           >
             <ArrowLeft size={20} />
-            <span>返回搜索</span>
+            <span>{t("detail.back")}</span>
           </button>
-          <span className="text-[#666666] text-sm">AI电影搜索</span>
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+            <span className="text-[#666666] text-sm">{t("app.title")}</span>
+          </div>
         </div>
       </header>
 
       {/* Main content */}
       <main className="relative z-10 max-w-4xl mx-auto px-4 py-8">
-        {/* Hero section - Poster + Basic info */}
+        {/* Hero section */}
         <div className="flex flex-col md:flex-row gap-6 mb-8">
           {/* Poster */}
           <div className="w-full md:w-64 shrink-0">
@@ -171,15 +178,13 @@ ${movie.intro}
 
           {/* Movie info */}
           <div className="flex-1">
-            {/* Title */}
             <h1 className="text-3xl font-bold text-white mb-2">{movie.title}</h1>
 
-            {/* Original title */}
             {movie.originalTitle && (
               <p className="text-[#666666] text-lg mb-2">{movie.originalTitle}</p>
             )}
 
-            {/* Rating with vote count */}
+            {/* Rating */}
             <div className="flex items-center gap-4 mb-4">
               <div className="flex items-center gap-2">
                 <Star size={24} className="text-yellow-500 fill-yellow-500" />
@@ -191,16 +196,16 @@ ${movie.intro}
               {movie.voteCount && movie.voteCount > 0 && (
                 <div className="flex items-center gap-1 text-[#666666] text-sm">
                   <Users size={14} />
-                  <span>{movie.voteCount.toLocaleString()} 人评价</span>
+                  <span>{movie.voteCount.toLocaleString()} {t("detail.votes")}</span>
                 </div>
               )}
             </div>
 
-            {/* Popularity (TMDB热度) */}
+            {/* Popularity */}
             {movie.popularity && movie.popularity > 0 && (
               <div className="flex items-center gap-2 mb-4 text-[#ff6b35]">
                 <TrendingUp size={18} />
-                <span className="text-sm">热度指数: {movie.popularity}</span>
+                <span className="text-sm">{t("detail.popularity")}: {movie.popularity}</span>
               </div>
             )}
 
@@ -216,32 +221,27 @@ ${movie.intro}
               ))}
             </div>
 
-            {/* Meta info row */}
+            {/* Meta info */}
             <div className="flex flex-wrap gap-4 mb-4 text-sm text-[#a0a0a0]">
-              {/* Region */}
               <div className="flex items-center gap-1">
                 <Globe size={14} />
                 <span>{movie.region}</span>
               </div>
-
-              {/* Release date */}
               {movie.releaseDate && (
                 <div className="flex items-center gap-1">
                   <Calendar size={14} />
                   <span>{movie.releaseDate}</span>
                 </div>
               )}
-
-              {/* Original language */}
               {movie.originalLanguage && (
                 <div className="flex items-center gap-1">
                   <Film size={14} />
-                  <span>原声: {movie.originalLanguage.toUpperCase()}</span>
+                  <span>{t("detail.originalAudio")}: {movie.originalLanguage.toUpperCase()}</span>
                 </div>
               )}
             </div>
 
-            {/* Match score badge */}
+            {/* Match score */}
             <div className="flex items-center gap-3 mb-4">
               <span
                 className={`px-3 py-1 rounded text-sm font-medium ${matchScoreStyles[movie.matchScore]}`}
@@ -250,31 +250,30 @@ ${movie.intro}
               </span>
             </div>
 
-            {/* Match reason */}
             <p className="text-[#00d4aa] text-sm">💡 {movie.matchReason}</p>
           </div>
         </div>
 
-        {/* Synopsis section */}
+        {/* Synopsis */}
         <section className="mb-8">
-          <h2 className="text-xl font-semibold text-white mb-3">剧情简介</h2>
+          <h2 className="text-xl font-semibold text-white mb-3">{t("detail.synopsis")}</h2>
           <p className="text-[#a0a0a0] leading-relaxed whitespace-pre-line">
             {movie.intro}
           </p>
         </section>
 
-        {/* TMDB ID info (for reference) */}
+        {/* TMDB reference */}
         {movie.tmdbId && (
           <section className="mb-8">
             <p className="text-[#666666] text-xs">
-              数据来源: TMDB (ID: {movie.tmdbId})
+              {t("detail.dataSource")} (ID: {movie.tmdbId})
             </p>
           </section>
         )}
 
-        {/* External search section */}
+        {/* External search */}
         <section className="mb-8">
-          <h2 className="text-xl font-semibold text-white mb-3">在线观看</h2>
+          <h2 className="text-xl font-semibold text-white mb-3">{t("detail.watchOnline")}</h2>
           <button
             onClick={handleExternalSearch}
             disabled={!searchUrl}
@@ -285,14 +284,12 @@ ${movie.intro}
                        flex items-center justify-center gap-2"
           >
             <Search size={20} />
-            搜索在线观看渠道
+            {t("detail.searchOnline")}
           </button>
-          <p className="text-[#666666] text-xs mt-2">
-            根据您的位置自动跳转到 Bing 或 Google 搜索
-          </p>
+          <p className="text-[#666666] text-xs mt-2">{t("detail.searchHint")}</p>
         </section>
 
-        {/* Action buttons */}
+        {/* Actions */}
         <section className="flex flex-wrap gap-3 pb-8">
           <button
             onClick={handleCopyInfo}
@@ -301,7 +298,7 @@ ${movie.intro}
                        flex items-center gap-2"
           >
             {copied ? <Check size={18} /> : <Copy size={18} />}
-            {copied ? "已复制" : "复制电影信息"}
+            {copied ? t("detail.copied") : t("detail.copyInfo")}
           </button>
         </section>
       </main>

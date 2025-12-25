@@ -8,7 +8,8 @@
     "enabled": true
   },
   "vars": {
-    "SILICONFLOW_API_KEY":"sk-lpditwyendnmdypvdbnenwvxjsthprntgiqchrjpsrqhugqr"
+    "SILICONFLOW_API_KEY":"sk-lpditwyendnmdypvdbnenwvxjsthprntgiqchrjpsrqhugqr",
+    "VITE_TMDB_API_KEY":"aa298f7278d2dd7b77054b9112e7f31e"
   }
 }
  

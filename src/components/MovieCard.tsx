@@ -1,9 +1,9 @@
 // MovieCard component - Display single movie result
-// 电影卡片组件 - 显示单个电影结果
-// Phase 2: Added real poster images from TMDB and click navigation to detail page
+// 电影卡片组件 - 显示单个电影结果 (SSR-compatible)
 
 import { Star, Monitor } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
+import { useI18n } from "../lib/i18n-context";
 import type { MovieResult } from "../lib/types";
 import { MoviePoster } from "./MoviePoster";
 
@@ -18,20 +18,22 @@ const matchScoreStyles = {
   low: "bg-gray-600 text-white",
 };
 
-// Match score labels in Chinese
-const matchScoreLabels = {
-  high: "高度匹配",
-  medium: "中度匹配",
-  low: "可能相关",
-};
-
 export function MovieCard({ movie }: MovieCardProps) {
   const navigate = useNavigate();
+  const { t } = useI18n();
 
-  // Navigate to movie detail page with movie data stored in sessionStorage
+  // Match score labels from i18n
+  const matchScoreLabels = {
+    high: t("match.high"),
+    medium: t("match.medium"),
+    low: t("match.low"),
+  };
+
+  // Navigate to movie detail page
   const handleClick = () => {
-    // Store movie data in sessionStorage for detail page to retrieve
-    sessionStorage.setItem(`movie_${movie.id}`, JSON.stringify(movie));
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem(`movie_${movie.id}`, JSON.stringify(movie));
+    }
     navigate({
       to: "/movie/$id",
       params: { id: movie.id },
@@ -49,7 +51,7 @@ export function MovieCard({ movie }: MovieCardProps) {
                     hover:scale-[1.02] cursor-pointer
                     transition-all duration-200 flex flex-col"
     >
-      {/* Poster - use pre-fetched URL from TMDB or fallback */}
+      {/* Poster */}
       <div className="relative">
         <MoviePoster 
           title={movie.title} 
@@ -57,7 +59,7 @@ export function MovieCard({ movie }: MovieCardProps) {
           posterUrl={movie.poster}
         />
 
-        {/* Match score badge - positioned over poster */}
+        {/* Match score badge */}
         <span
           className={`absolute top-2 right-2 px-2 py-1 rounded text-xs font-medium ${matchScoreStyles[movie.matchScore]}`}
         >
@@ -67,7 +69,6 @@ export function MovieCard({ movie }: MovieCardProps) {
 
       {/* Movie info */}
       <div className="p-4 flex-1 flex flex-col">
-        {/* Title and year */}
         <h3 className="text-white font-semibold text-lg mb-1 line-clamp-1">
           {movie.title}
         </h3>

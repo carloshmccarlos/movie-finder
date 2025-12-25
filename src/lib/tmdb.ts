@@ -1,8 +1,10 @@
 // TMDB API client for fetching movie information and posters
 // TMDB API 客户端 - 获取电影信息和海报
 // Phase 2 Update: Now fetches full movie details, not just posters
+// i18n Update: Locale-aware API calls and genre mapping
 
 import type { MovieResult } from "./types";
+import type { Locale } from "./i18n";
 
 // TMDB API configuration
 const TMDB_API_URL = "https://api.themoviedb.org/3";
@@ -31,7 +33,7 @@ interface TMDBSearchResponse {
 }
 
 // TMDB genre ID to Chinese name mapping
-const GENRE_MAP: Record<number, string> = {
+const GENRE_MAP_ZH: Record<number, string> = {
   28: "动作",
   12: "冒险",
   16: "动画",
@@ -53,8 +55,31 @@ const GENRE_MAP: Record<number, string> = {
   37: "西部",
 };
 
-// Language code to region mapping
-const LANGUAGE_TO_REGION: Record<string, string> = {
+// TMDB genre ID to English name mapping
+const GENRE_MAP_EN: Record<number, string> = {
+  28: "Action",
+  12: "Adventure",
+  16: "Animation",
+  35: "Comedy",
+  80: "Crime",
+  99: "Documentary",
+  18: "Drama",
+  10751: "Family",
+  14: "Fantasy",
+  36: "History",
+  27: "Horror",
+  10402: "Music",
+  9648: "Mystery",
+  10749: "Romance",
+  878: "Sci-Fi",
+  10770: "TV Movie",
+  53: "Thriller",
+  10752: "War",
+  37: "Western",
+};
+
+// Language code to region mapping (Chinese)
+const LANGUAGE_TO_REGION_ZH: Record<string, string> = {
   zh: "中国",
   en: "美国",
   ja: "日本",
@@ -65,6 +90,20 @@ const LANGUAGE_TO_REGION: Record<string, string> = {
   it: "意大利",
   ru: "俄罗斯",
   hi: "印度",
+};
+
+// Language code to region mapping (English)
+const LANGUAGE_TO_REGION_EN: Record<string, string> = {
+  zh: "China",
+  en: "USA",
+  ja: "Japan",
+  ko: "Korea",
+  fr: "France",
+  de: "Germany",
+  es: "Spain",
+  it: "Italy",
+  ru: "Russia",
+  hi: "India",
 };
 
 /**
@@ -110,22 +149,27 @@ function buildParams(params: Record<string, string>): URLSearchParams {
 /**
  * Search TMDB for a movie by title and optional year
  * Returns full movie details including poster, rating, overview
+ * Locale-aware: uses appropriate TMDB language parameter
  */
 export async function searchTMDBMovie(
   title: string,
-  year?: number
+  year?: number,
+  locale: Locale = "zh"
 ): Promise<TMDBMovie | null> {
   if (!isTMDBConfigured()) {
     console.log("[TMDB] Not configured, skipping search");
     return null;
   }
 
-  console.log("[TMDB] Searching for:", title, year);
+  console.log("[TMDB] Searching for:", title, year, "Locale:", locale);
 
   try {
+    // Map locale to TMDB language code
+    const tmdbLanguage = locale === "en" ? "en-US" : "zh-CN";
+    
     const params = buildParams({
       query: title,
-      language: "zh-CN",
+      language: tmdbLanguage,
       include_adult: "false",
     });
 
@@ -158,24 +202,33 @@ export async function searchTMDBMovie(
 /**
  * Convert TMDB movie to our MovieResult format
  * Merges AI match info with TMDB movie data - includes ALL available fields
+ * Locale-aware: uses appropriate genre and region mappings
  */
 export function tmdbToMovieResult(
   tmdb: TMDBMovie,
   matchScore: "high" | "medium" | "low",
-  matchReason: string
+  matchReason: string,
+  locale: Locale = "zh"
 ): MovieResult {
   // Extract year from release_date
   const year = tmdb.release_date 
     ? parseInt(tmdb.release_date.split("-")[0], 10) 
     : 0;
 
-  // Convert genre IDs to Chinese names
+  // Select locale-appropriate mappings
+  const genreMap = locale === "en" ? GENRE_MAP_EN : GENRE_MAP_ZH;
+  const regionMap = locale === "en" ? LANGUAGE_TO_REGION_EN : LANGUAGE_TO_REGION_ZH;
+  const defaultGenre = locale === "en" ? "Movie" : "电影";
+  const defaultRegion = locale === "en" ? "Other" : "其他";
+  const noSynopsis = locale === "en" ? "No synopsis available" : "暂无简介";
+
+  // Convert genre IDs to localized names
   const genres = tmdb.genre_ids
-    .map((id) => GENRE_MAP[id])
+    .map((id) => genreMap[id])
     .filter(Boolean);
 
   // Determine region from original language
-  const region = LANGUAGE_TO_REGION[tmdb.original_language] || "其他";
+  const region = regionMap[tmdb.original_language] || defaultRegion;
 
   // Build poster URL (w500 for cards)
   const poster = tmdb.poster_path
@@ -196,11 +249,11 @@ export function tmdbToMovieResult(
     releaseDate: tmdb.release_date || undefined,
     poster,
     backdrop,
-    intro: tmdb.overview || "暂无简介",
+    intro: tmdb.overview || noSynopsis,
     rating: Math.round(tmdb.vote_average * 10) / 10,
     voteCount: tmdb.vote_count,
     popularity: Math.round(tmdb.popularity),
-    genres: genres.length > 0 ? genres : ["电影"],
+    genres: genres.length > 0 ? genres : [defaultGenre],
     region,
     originalLanguage: tmdb.original_language,
     platforms: [], // TMDB doesn't provide streaming platforms in search

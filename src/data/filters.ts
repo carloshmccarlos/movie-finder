@@ -1,11 +1,12 @@
 // Filter options data - Tencent Video style categories
 // 筛选条件数据 - 腾讯视频风格分类
-// Only keeping: 类型, 地区, 年代
+// Supports both Chinese and English
 
 import type { FilterCategory } from "../lib/types";
+import type { Locale } from "../lib/i18n";
 
-// All filter categories with their options
-export const filterCategories: FilterCategory[] = [
+// Chinese filter categories
+const zhFilterCategories: FilterCategory[] = [
   {
     key: "genre",
     label: "类型",
@@ -53,3 +54,61 @@ export const filterCategories: FilterCategory[] = [
     ],
   },
 ];
+
+// English filter categories
+const enFilterCategories: FilterCategory[] = [
+  {
+    key: "genre",
+    label: "Genre",
+    type: "hard",
+    options: [
+      { value: "", label: "All" },
+      { value: "Action", label: "Action" },
+      { value: "Romance", label: "Romance" },
+      { value: "Sci-Fi", label: "Sci-Fi" },
+      { value: "Drama", label: "Drama" },
+      { value: "Comedy", label: "Comedy" },
+      { value: "Horror", label: "Horror" },
+      { value: "Mystery", label: "Mystery" },
+      { value: "Animation", label: "Animation" },
+      { value: "Documentary", label: "Documentary" },
+    ],
+  },
+  {
+    key: "region",
+    label: "Region",
+    type: "hard",
+    options: [
+      { value: "", label: "All" },
+      { value: "China", label: "China" },
+      { value: "Hong Kong", label: "Hong Kong" },
+      { value: "Taiwan", label: "Taiwan" },
+      { value: "Japan", label: "Japan" },
+      { value: "Korea", label: "Korea" },
+      { value: "USA", label: "USA" },
+      { value: "Europe", label: "Europe" },
+      { value: "Other", label: "Other" },
+    ],
+  },
+  {
+    key: "era",
+    label: "Era",
+    type: "hard",
+    options: [
+      { value: "", label: "All" },
+      { value: "2020s", label: "2020s" },
+      { value: "2010s", label: "2010s" },
+      { value: "2000s", label: "2000s" },
+      { value: "1990s", label: "1990s" },
+      { value: "Earlier", label: "Earlier" },
+    ],
+  },
+];
+
+// Get filter categories by locale
+export function getFilterCategories(locale: Locale): FilterCategory[] {
+  return locale === "en" ? enFilterCategories : zhFilterCategories;
+}
+
+// Legacy export for backward compatibility
+export const filterCategories = zhFilterCategories;

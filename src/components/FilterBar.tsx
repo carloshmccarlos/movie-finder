@@ -1,8 +1,9 @@
 // FilterBar component - Tencent Video style filter panel
-// 筛选栏组件 - 腾讯视频风格筛选面板
+// 筛选栏组件 - 腾讯视频风格筛选面板 (i18n support)
 
 import { FilterChip } from "./FilterChip";
-import { filterCategories } from "../data/filters";
+import { getFilterCategories } from "../data/filters";
+import { useI18n } from "../lib/i18n-context";
 import type { SearchFilters } from "../lib/types";
 
 interface FilterBarProps {
@@ -11,6 +12,9 @@ interface FilterBarProps {
 }
 
 export function FilterBar({ filters, onFilterChange }: FilterBarProps) {
+  const { locale } = useI18n();
+  const filterCategories = getFilterCategories(locale);
+
   return (
     <div className="w-full max-w-4xl mx-auto mt-6 p-4 bg-[#1a1a1a] rounded-lg border border-[#333333]">
       {/* Render each filter category */}

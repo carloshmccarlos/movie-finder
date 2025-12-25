@@ -157,6 +157,8 @@ VITE_TMDB_API_KEY=your_tmdb_key_here  # Phase 2
 - [x] Movie Detail Page (`/movie/:id` route)
 - [x] External Search Link (Bing/Google based on IP)
 - [x] Image lazy loading and caching
+- [x] Search state persistence (TanStack Query)
+- [x] i18n support (Chinese/English)
 
 ### Phase 3 (Future)
 - [ ] User accounts and favorites
