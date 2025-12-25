@@ -1,28 +1,36 @@
 {
+  "name": "AI电影搜索 - 描述电影，AI帮你找",
   "short_name": "AI电影搜索",
-  "name": "AI电影搜索 - 用自然语言找电影",
-  "description": "描述你想看的电影，AI帮你找到它。支持按类型、地区、年代筛选。",
+  "description": "用自然语言描述你想看的电影，AI智能匹配最相关的电影推荐",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f0f",
+  "theme_color": "#ff6b35",
+  "orientation": "portrait-primary",
+  "lang": "zh-CN",
+  "categories": ["entertainment", "utilities"],
   "icons": [
     {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
       "type": "image/x-icon"
     },
     {
-      "src": "logo192.png",
+      "src": "/logo192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
-      "src": "logo512.png",
+      "src": "/logo512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
-  ],
-  "start_url": ".",
-  "display": "standalone",
-  "theme_color": "#ff6b35",
-  "background_color": "#0f0f0f",
-  "lang": "zh-CN",
-  "categories": ["entertainment", "utilities"]
+  ]
 }

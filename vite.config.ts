@@ -8,7 +8,10 @@ import { cloudflare } from '@cloudflare/vite-plugin'
 
 const config = defineConfig({
   plugins: [
-  
+    // TanStack React Start must run first so its virtual modules (like
+    // tanstack-start-injected-head-scripts) are registered before other
+    // plugins transform the bundle.
+    tanstackStart(),
     devtools(),
     cloudflare({ viteEnvironment: { name: 'ssr' } }),
     // this is the plugin that enables path aliases
@@ -16,10 +19,8 @@ const config = defineConfig({
       projects: ['./tsconfig.json'],
     }),
     tailwindcss(),
-    tanstackStart(),
     viteReact(),
   ],
-
 })
 
 export default config

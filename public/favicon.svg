@@ -1,24 +1,58 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+    <!-- Gradient for background -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a1a"/>
+      <stop offset="100%" style="stop-color:#0f0f0f"/>
+    </linearGradient>
+    <!-- Gradient for accent -->
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#ff6b35"/>
       <stop offset="100%" style="stop-color:#ff8555"/>
     </linearGradient>
+    <!-- Glow filter -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
+  
   <!-- Background circle -->
-  <circle cx="50" cy="50" r="48" fill="url(#bg)"/>
-  <!-- Movie clapper / film icon -->
-  <g fill="#ffffff">
-    <!-- Film reel circle -->
-    <circle cx="50" cy="55" r="25" fill="none" stroke="#ffffff" stroke-width="4"/>
-    <!-- Inner circle -->
-    <circle cx="50" cy="55" r="8" fill="#ffffff"/>
-    <!-- Film holes -->
-    <circle cx="50" cy="35" r="4" fill="#ffffff"/>
-    <circle cx="50" cy="75" r="4" fill="#ffffff"/>
-    <circle cx="30" cy="55" r="4" fill="#ffffff"/>
-    <circle cx="70" cy="55" r="4" fill="#ffffff"/>
-    <!-- AI sparkle -->
-    <path d="M75 20 L78 28 L86 25 L80 30 L86 35 L78 32 L75 40 L72 32 L64 35 L70 30 L64 25 L72 28 Z" fill="#ffffff"/>
+  <circle cx="256" cy="256" r="250" fill="url(#bgGrad)" stroke="#333" stroke-width="4"/>
+  
+  <!-- Film reel outer ring -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="#444" stroke-width="24"/>
+  
+  <!-- Film reel holes -->
+  <circle cx="256" cy="100" r="28" fill="#333"/>
+  <circle cx="256" cy="412" r="28" fill="#333"/>
+  <circle cx="100" cy="256" r="28" fill="#333"/>
+  <circle cx="412" cy="256" r="28" fill="#333"/>
+  <circle cx="146" cy="146" r="24" fill="#333"/>
+  <circle cx="366" cy="146" r="24" fill="#333"/>
+  <circle cx="146" cy="366" r="24" fill="#333"/>
+  <circle cx="366" cy="366" r="24" fill="#333"/>
+  
+  <!-- Center circle with AI symbol -->
+  <circle cx="256" cy="256" r="80" fill="url(#accentGrad)" filter="url(#glow)"/>
+  
+  <!-- AI text/symbol in center -->
+  <text x="256" y="275" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="white" text-anchor="middle">AI</text>
+  
+  <!-- Sparkle effects around -->
+  <g fill="#ff6b35" opacity="0.8">
+    <!-- Top right sparkle -->
+    <path d="M400 80 L408 100 L428 92 L412 108 L428 120 L408 112 L400 132 L392 112 L372 120 L388 108 L372 92 L392 100 Z"/>
+    <!-- Bottom left sparkle -->
+    <path d="M112 380 L120 400 L140 392 L124 408 L140 420 L120 412 L112 432 L104 412 L84 420 L100 408 L84 392 L104 400 Z"/>
+  </g>
+  
+  <!-- Search magnifier hint -->
+  <g transform="translate(350, 350)" fill="none" stroke="white" stroke-width="8" opacity="0.6">
+    <circle cx="30" cy="30" r="25"/>
+    <line x1="48" y1="48" x2="70" y2="70"/>
   </g>
 </svg>

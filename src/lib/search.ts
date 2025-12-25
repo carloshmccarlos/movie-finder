@@ -1,97 +1,85 @@
-// Search function - calls SiliconFlow API directly from client
-// 搜索函数 - 从客户端直接调用 SiliconFlow API
-// Note: API key is passed from server via route loader
+// Search function - AI identifies movies, TMDB provides details
+// 搜索函数 - AI识别电影名称，TMDB提供详细信息
+// Phase 2 Update: Two-step search - AI → TMDB
 
 import type { SearchFilters, SearchResponse, MovieResult } from "./types";
+import { searchTMDBMovie, tmdbToMovieResult, isTMDBConfigured } from "./tmdb";
 
 // SiliconFlow API endpoint
 const SILICONFLOW_API_URL = "https://api.siliconflow.cn/v1/chat/completions";
+const API_KEY = import.meta.env.VITE_SILICONFLOW_API_KEY || "";
 
-// Build the prompt for movie search - strict matching rules
+// AI response structure - just movie identification
+interface AIMovieMatch {
+  title: string;           // Movie title (Chinese preferred)
+  originalTitle: string;   // English/original title for TMDB search
+  year: number;            // Release year
+  matchScore: "high" | "medium" | "low";
+  matchReason: string;     // Why this movie matches
+}
+
+/**
+ * Build prompt for AI to identify movies from description
+ * AI only returns movie names and match reasons, not full details
+ */
 function buildSearchPrompt(query: string, filters: SearchFilters): string {
   const filterParts: string[] = [];
 
-  if (filters.genre) filterParts.push(`genra：${filters.genre},`);
-  if (filters.region) filterParts.push(`region：${filters.region}`);
-  if (filters.era) filterParts.push(`era：${filters.era}`);
+  if (filters.genre) filterParts.push(`类型：${filters.genre}`);
+  if (filters.region) filterParts.push(`地区：${filters.region}`);
+  if (filters.era) filterParts.push(`年代：${filters.era}`);
 
   const filterText =
     filterParts.length > 0 ? `\n用户筛选条件：${filterParts.join("，")}` : "";
 
   return `# Role
-You are a movie recommendation expert. Your task is to recommend movies that strictly match the user's description.
+You are a movie identification expert. Your task is to identify movies that match the user's description.
 
-## 🔴 Core Rules (Must Follow)
-- Ignore the language of user description
-- Use ONLY the factors explicitly mentioned by the user as primary decision criteria.
-- Genre and region are the highest-priority constraints.
-- If a movie does not match the user-specified genre or region, DO NOT recommend it.
-- Story elements (characters, events, themes) may be used only after genre and region are satisfied.
-- Do NOT infer, expand, or guess any user intent (no "similar vibes", "target audience", or popularity-based guesses).
-- If no perfect match exists:
-  - You may return medium or low matches
-  - You must clearly explain the mismatch reason
+## 🔴 Core Rules
+- Identify 1-5 movies that best match the description
+- Return movie titles (Chinese + English/Original) and release year
+- Explain why each movie matches the description
+- Do NOT make up movies - only return real, existing movies
 
 ## 👤 User Description
 ${query}${filterText}
 
-## 🎯 Task
-- Recommend 1–5 movies that best match the description
-- Match characters, plot elements, genre, and region strictly
-- Do not add filters the user did not mention (director, franchise, era, etc.)
-
-## 📦 Output Requirements
-Return ONLY a valid JSON array. No explanations, no markdown, no extra text.
-
-Each movie must include the following fields:
-[
-  {
-    "id": "movie-english-slug",
-    "title": "Chinese Title",
-    "originalTitle": "Original or English Title (empty string if none)",
-    "year": "",
-    "intro": "A 50–100 word summary tightly aligned with the user description",
-    "rating": "",
-    "genres": [],
-    "region": "",
-    "platforms": [""],
-    "matchScore": "",
-    "matchReason": "20–40 words explaining exactly which user factors this movie matches"
-  }
-]
-
-### Example
-For user description: "主角是一个狐狸和一个兔子警察，作为搭档一起破案的故事，里面还有个局长是个牛"
+## 📦 Output Format
+Return ONLY a valid JSON array. No explanations, no markdown.
 
 [
   {
-    "id": "zootopia",
-    "title": "疯狂动物城",
-    "originalTitle": "Zootopia",
-    "year": "2016",
-    "intro": "在一个动物世界中，兔子朱迪成为首位兔子警官，与狐狸尼克搭档调查一起神秘失踪案。他们的上司是一头水牛局长。影片探讨了偏见与友谊的主题。",
-    "rating": "8.2",
-    "genres": ["动画", "喜剧", "冒险"],
-    "region": "美国",
-    "platforms": ["Disney+", "腾讯视频"],
+    "title": "中文电影名",
+    "originalTitle": "English or Original Title",
+    "year": 2020,
     "matchScore": "high",
-    "matchReason": "完全匹配：狐狸和兔子警察搭档破案，水牛局长角色都与用户描述一致"
+    "matchReason": "匹配原因说明"
   }
 ]
 
 ## 📊 Match Score Rules
-- "high" → Genre, region, and core story elements all match
-- "medium" → Genre and region match, story partially matches
-- "low" → Only some hard constraints match (must explain why)
+- "high" → Core plot elements and characters match perfectly
+- "medium" → Main theme matches, some details differ
+- "low" → Loosely related, may not be exact match
 
-## ✅ Final Constraints
-- Output valid JSON only
-- All fields must be present
-- Every recommendation must be directly traceable to user-provided facts`;
+## Example
+User: "一个男人失去记忆，用纹身记录线索"
+
+[
+  {
+    "title": "记忆碎片",
+    "originalTitle": "Memento",
+    "year": 2000,
+    "matchScore": "high",
+    "matchReason": "主角患有短期失忆症，用纹身和照片记录线索追查妻子被杀真相"
+  }
+]`;
 }
 
-// Parse LLM response to extract movie results
-function parseMovieResults(content: string): MovieResult[] {
+/**
+ * Parse AI response to extract movie matches
+ */
+function parseAIResponse(content: string): AIMovieMatch[] {
   try {
     let jsonStr = content.trim();
 
@@ -105,89 +93,173 @@ function parseMovieResults(content: string): MovieResult[] {
       jsonStr = jsonStr.slice(0, -3);
     }
 
-    jsonStr = jsonStr.trim();
-    const results = JSON.parse(jsonStr);
+    const results = JSON.parse(jsonStr.trim());
 
     if (!Array.isArray(results)) {
-      console.error("LLM response is not an array");
+      console.error("AI response is not an array");
       return [];
     }
 
-    return results.map((movie: MovieResult, index: number) => ({
-      id: movie.id || `movie-${index}`,
-      title: movie.title || "未知电影",
-      originalTitle: movie.originalTitle,
-      year: Number(movie.year) || 2000,
-      intro: movie.intro || "",
-      rating: Number(movie.rating) || 0,
-      genres: Array.isArray(movie.genres) ? movie.genres : [],
-      region: movie.region || "未知",
-      platforms: Array.isArray(movie.platforms) ? movie.platforms : [],
+    return results.map((movie: AIMovieMatch) => ({
+      title: movie.title || "",
+      originalTitle: movie.originalTitle || "",
+      year: Number(movie.year) || 0,
       matchScore: movie.matchScore || "medium",
       matchReason: movie.matchReason || "",
     }));
   } catch (error) {
-    console.error("Failed to parse LLM response:", error);
+    console.error("Failed to parse AI response:", error);
     console.error("Raw content:", content);
     return [];
   }
 }
 
-// Main search function - calls SiliconFlow API with DeepSeek-R1
-export async function searchMovies(
+/**
+ * Call AI to identify movies from user description
+ * Uses DeepSeek-V3.2 with thinking mode for better reasoning
+ * 
+ * ⚠️ DO NOT CHANGE THIS CONFIGURATION - LOCKED BY USER
+ */
+async function identifyMoviesWithAI(
   query: string,
-  filters: SearchFilters,
-  apiKey: string
-): Promise<SearchResponse> {
-  if (!query.trim()) {
-    throw new Error("搜索内容不能为空");
-  }
-
-  if (!apiKey) {
-    throw new Error("缺少 API Key");
-  }
-
+  filters: SearchFilters
+): Promise<AIMovieMatch[]> {
   const prompt = buildSearchPrompt(query, filters);
 
-  // Use DeepSeek-V3.2 with thinking mode enabled
+  // ⚠️ LOCKED CONFIGURATION - DO NOT MODIFY
   const response = await fetch(SILICONFLOW_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${API_KEY}`,
     },
     body: JSON.stringify({
-      model: "deepseek-ai/DeepSeek-V3.2",
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      max_tokens: 8192,
-      temperature: 0.7,
-      top_p: 0.7,
-      top_k: 50,
-      frequency_penalty: 0.0,
-      enable_thinking: true,
-      thinking_budget: 4096,
+      model: "deepseek-ai/DeepSeek-V3.2",  // DO NOT CHANGE
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 8192,                     // DO NOT CHANGE
+      temperature: 0.7,                     // DO NOT CHANGE
+      top_p: 0.7,                           // DO NOT CHANGE
+      top_k: 50,                            // DO NOT CHANGE
+      frequency_penalty: 0.0,               // DO NOT CHANGE
+      enable_thinking: true,                // DO NOT CHANGE
+      thinking_budget: 4096,                // DO NOT CHANGE
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
     console.error("SiliconFlow API error:", errorText);
-    throw new Error(`API 请求失败: ${response.status}`);
+    throw new Error(`AI 请求失败: ${response.status}`);
   }
 
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content;
 
   if (!content) {
-    throw new Error("API 返回内容为空");
+    throw new Error("AI 返回内容为空");
   }
 
-  const results = parseMovieResults(content);
+  return parseAIResponse(content);
+}
+
+/**
+ * Fetch movie details from TMDB for each AI match
+ */
+async function enrichWithTMDB(matches: AIMovieMatch[]): Promise<MovieResult[]> {
+  // Fetch TMDB data for each movie in parallel
+  const tmdbPromises = matches.map(async (match) => {
+    // Try searching with original title first (more accurate for TMDB)
+    let tmdbMovie = await searchTMDBMovie(match.originalTitle, match.year);
+    
+    // Fallback to Chinese title if original title search fails
+    if (!tmdbMovie && match.title !== match.originalTitle) {
+      tmdbMovie = await searchTMDBMovie(match.title, match.year);
+    }
+
+    if (tmdbMovie) {
+      // Use TMDB data with AI match info
+      return tmdbToMovieResult(tmdbMovie, match.matchScore, match.matchReason);
+    } else {
+      // Fallback: create result from AI data only (no poster)
+      return {
+        id: `ai-${match.title}-${match.year}`,
+        title: match.title,
+        originalTitle: match.originalTitle || undefined,
+        year: match.year,
+        poster: undefined,
+        intro: match.matchReason,
+        rating: 0,
+        genres: [],
+        region: "未知",
+        platforms: [],
+        matchScore: match.matchScore,
+        matchReason: match.matchReason,
+      } as MovieResult;
+    }
+  });
+
+  const enrichedResults = await Promise.all(tmdbPromises);
+  return enrichedResults;
+}
+
+/**
+ * Main search function
+ * Step 1: AI identifies movies from description
+ * Step 2: TMDB provides full movie details (poster, rating, etc.)
+ */
+export async function searchMovies(
+  query: string,
+  filters: SearchFilters
+): Promise<SearchResponse> {
+  if (!query.trim()) {
+    throw new Error("搜索内容不能为空");
+  }
+
+  if (!API_KEY) {
+    throw new Error("服务配置错误：缺少 AI API Key");
+  }
+
+  // Step 1: AI identifies movies
+  console.log("[Search] Step 1: Calling AI to identify movies...");
+  const aiMatches = await identifyMoviesWithAI(query, filters);
+  console.log("[Search] AI returned matches:", aiMatches);
+
+  if (aiMatches.length === 0) {
+    return {
+      results: [],
+      query: query.trim(),
+      totalResults: 0,
+    };
+  }
+
+  // Step 2: Enrich with TMDB data (if configured)
+  let results: MovieResult[];
+  
+  const tmdbConfigured = isTMDBConfigured();
+  console.log("[Search] Step 2: TMDB configured?", tmdbConfigured);
+  
+  if (tmdbConfigured) {
+    console.log("[Search] Enriching with TMDB data...");
+    results = await enrichWithTMDB(aiMatches);
+    console.log("[Search] TMDB enriched results:", results);
+  } else {
+    // No TMDB key - use AI data only
+    console.log("[Search] No TMDB, using AI data only");
+    results = aiMatches.map((match, index) => ({
+      id: `ai-${index}-${match.title}`,
+      title: match.title,
+      originalTitle: match.originalTitle || undefined,
+      year: match.year,
+      poster: undefined,
+      intro: match.matchReason,
+      rating: 0,
+      genres: [],
+      region: "未知",
+      platforms: [],
+      matchScore: match.matchScore,
+      matchReason: match.matchReason,
+    }));
+  }
 
   return {
     results,

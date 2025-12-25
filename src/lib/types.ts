@@ -1,19 +1,25 @@
 // TypeScript types for AI Movie Finder
 
-// Movie result returned from search
+// Movie result returned from search - includes all TMDB data
 export interface MovieResult {
   id: string;
-  title: string; // 电影名称
-  originalTitle?: string; // 原名（如有）
-  year: number; // 上映年份
-  poster?: string; // 海报URL（可选）
-  intro: string; // 简介
-  rating: number; // 评分 (0-10)
-  genres: string[]; // 类型标签
-  region: string; // 地区
-  platforms: string[]; // 观看平台
+  title: string;              // 电影名称
+  originalTitle?: string;     // 原名（如有）
+  year: number;               // 上映年份
+  releaseDate?: string;       // 完整上映日期 (YYYY-MM-DD)
+  poster?: string;            // 海报URL
+  backdrop?: string;          // 背景大图URL
+  intro: string;              // 简介/概述
+  rating: number;             // 评分 (0-10)
+  voteCount?: number;         // 评分人数
+  popularity?: number;        // 热度指数
+  genres: string[];           // 类型标签
+  region: string;             // 地区
+  originalLanguage?: string;  // 原始语言
+  platforms: string[];        // 观看平台
   matchScore: "high" | "medium" | "low"; // 匹配度
-  matchReason: string; // 匹配原因
+  matchReason: string;        // 匹配原因
+  tmdbId?: number;            // TMDB ID (用于获取更多信息)
 }
 
 // Search API response

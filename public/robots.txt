@@ -2,8 +2,11 @@
 User-agent: *
 Allow: /
 
-# Sitemap
-Sitemap: https://movie-search.example.com/sitemap.xml
+# Sitemap location (update with actual domain)
+# Sitemap: https://movie-finder.carloshmc.workers.dev/sitemap.xml
 
 # Crawl-delay for polite crawling
 Crawl-delay: 1
+
+# Block unnecessary paths
+Disallow: /api/

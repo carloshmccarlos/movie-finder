@@ -115,15 +115,18 @@ src/
 │   ├── FilterChip.tsx     # Individual filter option button
 │   ├── MovieCard.tsx      # Single movie result card
 │   ├── MovieList.tsx      # Grid of movie cards
+│   ├── MoviePoster.tsx    # (Phase 2) Poster image with fallback
 │   ├── LoadingState.tsx   # Loading spinner
 │   └── EmptyState.tsx     # Empty/error states
 ├── routes/
 │   ├── __root.tsx         # Root layout (dark theme, Chinese)
 │   ├── index.tsx          # Main search page
-│   └── api/
-│       └── search.ts      # Search API endpoint
+│   └── movie/
+│       └── $id.tsx        # (Phase 2) Movie detail page
 ├── lib/
-│   ├── siliconflow.ts     # SiliconFlow API client
+│   ├── search.ts          # SiliconFlow API client + search logic
+│   ├── tmdb.ts            # (Phase 2) TMDB API for posters
+│   ├── geolocation.ts     # (Phase 2) IP-based region detection
 │   └── types.ts           # TypeScript interfaces
 ├── data/
 │   └── filters.ts         # Filter options data
@@ -134,17 +137,55 @@ src/
 ## Environment Variables
 
 ```
-SILICONFLOW_API_KEY=your_api_key_here
+VITE_SILICONFLOW_API_KEY=your_api_key_here
+VITE_TMDB_API_KEY=your_tmdb_key_here  # Phase 2
 ```
 
 ## Current Implementation Status
 
-- [x] Phase 0: Project Setup ✅
-- [x] Phase 1: Core UI - Search Page ✅
-- [x] Phase 2: Filter UI ✅
-- [x] Phase 3: Results UI ✅
-- [x] Phase 4: Search API Endpoint ✅
-- [x] Phase 5: (Skipped - using LLM directly) ✅
-- [x] Phase 6: SiliconFlow Integration ✅
-- [x] Phase 7: UX Polish ✅
-- [ ] Phase 8: Testing & Launch (User testing)
+### Phase 1 (MVP) ✅ COMPLETED
+- [x] Project Setup
+- [x] Core UI - Search Page
+- [x] Filter UI (类型、地区、年代)
+- [x] Results UI (MovieCard, MovieList)
+- [x] SiliconFlow Integration (DeepSeek-V3.2 with thinking)
+- [x] UX Polish (dark theme, SEO, icons)
+- [x] Cloudflare Workers Deployment
+
+### Phase 2 ✅ COMPLETED
+- [x] Movie Poster Images (TMDB API integration)
+- [x] Movie Detail Page (`/movie/:id` route)
+- [x] External Search Link (Bing/Google based on IP)
+- [x] Image lazy loading and caching
+
+### Phase 3 (Future)
+- [ ] User accounts and favorites
+- [ ] Search history
+- [ ] Social sharing
+
+## Phase 2 Architecture Updates
+
+### New Routes
+```
+/movie/:id  →  Movie detail page with full info
+```
+
+### New API Integrations
+```
+┌─────────────────────────────────────────────────────────┐
+│                   External APIs                         │
+│  ┌─────────────────┐  ┌─────────────────────────────┐  │
+│  │   TMDB API      │  │   IP Geolocation API        │  │
+│  │  - Poster URLs  │  │  - Detect user region       │  │
+│  │  - Movie images │  │  - China → Bing             │  │
+│  │                 │  │  - Other → Google           │  │
+│  └─────────────────┘  └─────────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Data Flow (Phase 2)
+1. User searches → AI returns movie results
+2. For each result, fetch poster from TMDB (by title + year)
+3. User clicks movie card → navigate to `/movie/:id`
+4. Detail page shows full info + "Search Online" button
+5. On click, detect IP region and redirect to Bing (China) or Google (other)

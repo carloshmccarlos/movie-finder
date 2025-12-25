@@ -1,8 +1,11 @@
 // MovieCard component - Display single movie result
 // 电影卡片组件 - 显示单个电影结果
+// Phase 2: Added real poster images from TMDB and click navigation to detail page
 
 import { Star, Monitor } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import type { MovieResult } from "../lib/types";
+import { MoviePoster } from "./MoviePoster";
 
 interface MovieCardProps {
   movie: MovieResult;
@@ -23,17 +26,38 @@ const matchScoreLabels = {
 };
 
 export function MovieCard({ movie }: MovieCardProps) {
+  const navigate = useNavigate();
+
+  // Navigate to movie detail page with movie data stored in sessionStorage
+  const handleClick = () => {
+    // Store movie data in sessionStorage for detail page to retrieve
+    sessionStorage.setItem(`movie_${movie.id}`, JSON.stringify(movie));
+    navigate({
+      to: "/movie/$id",
+      params: { id: movie.id },
+    });
+  };
+
   return (
     <div
+      onClick={handleClick}
+      onKeyDown={(e) => e.key === "Enter" && handleClick()}
+      role="button"
+      tabIndex={0}
       className="bg-[#1a1a1a] border border-[#333333] rounded-lg overflow-hidden
                     hover:border-[#ff6b35] hover:shadow-lg hover:shadow-[#ff6b35]/10
+                    hover:scale-[1.02] cursor-pointer
                     transition-all duration-200 flex flex-col"
     >
-      {/* Poster placeholder - using gradient background */}
-      <div className="aspect-2/3 bg-linear-to-br from-[#252525] to-[#1a1a1a] relative flex items-center justify-center">
-        <span className="text-6xl">🎬</span>
+      {/* Poster - use pre-fetched URL from TMDB or fallback */}
+      <div className="relative">
+        <MoviePoster 
+          title={movie.title} 
+          year={movie.year} 
+          posterUrl={movie.poster}
+        />
 
-        {/* Match score badge */}
+        {/* Match score badge - positioned over poster */}
         <span
           className={`absolute top-2 right-2 px-2 py-1 rounded text-xs font-medium ${matchScoreStyles[movie.matchScore]}`}
         >

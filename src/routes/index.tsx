@@ -1,8 +1,10 @@
 // Main search page - AI Movie Finder landing page
 // 主搜索页面 - AI电影搜索首页
+// Phase 2: Using TanStack Query for search state persistence
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 
 import { FilterBar } from "../components/FilterBar";
@@ -10,101 +12,95 @@ import { MovieList } from "../components/MovieList";
 import { LoadingState } from "../components/LoadingState";
 import { EmptyState } from "../components/EmptyState";
 import { searchMovies } from "../lib/search";
-import type { SearchFilters, MovieResult } from "../lib/types";
+import type { SearchFilters } from "../lib/types";
 
-// Route definition with loader to get API key from server
+// Session storage keys for persisting search input state
+const STORAGE_KEY = "last_search";
+
+// Route definition
 export const Route = createFileRoute("/")({
   component: SearchPage,
-  loader: async () => {
-    // Get API key from environment on server side
-    const apiKey = process.env.SILICONFLOW_API_KEY || "";
-    return { apiKey };
-  },
 });
+
+// Load last search from sessionStorage
+function loadLastSearch(): { query: string; filters: SearchFilters } | null {
+  try {
+    const stored = sessionStorage.getItem(STORAGE_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return null;
+}
+
+// Save search to sessionStorage
+function saveLastSearch(query: string, filters: SearchFilters) {
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ query, filters }));
+}
 
 // Main search page component
 function SearchPage() {
-  // Get API key from loader data
-  const { apiKey } = Route.useLoaderData();
+  // Load last search on mount
+  const lastSearch = loadLastSearch();
 
-  // Search query state
-  const [query, setQuery] = useState("");
-
-  // Filter state - default to "全部" (empty string means all)
-  const [filters, setFilters] = useState<SearchFilters>({
-    genre: "",
-    region: "",
-    era: "",
-  });
+  // Search query and filters state
+  const [query, setQuery] = useState(lastSearch?.query || "");
+  const [submittedQuery, setSubmittedQuery] = useState(lastSearch?.query || "");
+  const [filters, setFilters] = useState<SearchFilters>(
+    lastSearch?.filters || { genre: "", region: "", era: "" }
+  );
+  const [submittedFilters, setSubmittedFilters] = useState<SearchFilters>(
+    lastSearch?.filters || { genre: "", region: "", era: "" }
+  );
 
   // UI state
   const [showFilters, setShowFilters] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  // Search results
-  const [results, setResults] = useState<MovieResult[]>([]);
-  const [hasSearched, setHasSearched] = useState(false);
+  // TanStack Query for search - caches results automatically
+  // Query key includes query and filters so different searches are cached separately
+  const {
+    data: searchResults,
+    isLoading,
+    error,
+    isFetched,
+  } = useQuery({
+    queryKey: ["movieSearch", submittedQuery, submittedFilters],
+    queryFn: () => searchMovies(submittedQuery, submittedFilters),
+    enabled: !!submittedQuery.trim(), // Only run when query is submitted
+    staleTime: Infinity, // Keep results cached forever
+    gcTime: Infinity, // Never garbage collect
+  });
 
-  // Handle filter change - update single filter value
+  const results = searchResults?.results || [];
+  const hasSearched = isFetched && !!submittedQuery;
+
+  // Handle filter change
   const handleFilterChange = useCallback(
     (key: keyof SearchFilters, value: string) => {
-      setFilters((prev) => ({
-        ...prev,
-        [key]: value,
-      }));
+      setFilters((prev) => ({ ...prev, [key]: value }));
     },
     []
   );
 
-  // Clear all filters - reset to "全部"
+  // Clear all filters
   const clearFilters = useCallback(() => {
-    setFilters({
-      genre: "",
-      region: "",
-      era: "",
-    });
+    setFilters({ genre: "", region: "", era: "" });
   }, []);
 
-  // Check if any filters are active
   const hasActiveFilters = Object.values(filters).some((v) => v);
 
-  // Perform search - call SiliconFlow API
-  const performSearch = useCallback(async () => {
-    // Validate query
-    if (!query.trim()) {
-      return;
-    }
+  // Perform search - submit query and filters, close filter bar
+  const performSearch = useCallback(() => {
+    if (!query.trim()) return;
+    const trimmedQuery = query.trim();
+    setSubmittedQuery(trimmedQuery);
+    setSubmittedFilters({ ...filters });
+    setShowFilters(false);
+    // Save to sessionStorage for persistence across navigation
+    saveLastSearch(trimmedQuery, filters);
+  }, [query, filters]);
 
-    // Check API key
-    if (!apiKey) {
-      setError("服务配置错误：缺少 API Key");
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    setHasSearched(true);
-
-    try {
-      // Call search function
-      const response = await searchMovies(query.trim(), filters, apiKey);
-
-      // Update results
-      setResults(response.results);
-    } catch (err) {
-      console.error("Search error:", err);
-      setError(err instanceof Error ? err.message : "搜索失败，请稍后重试");
-      setResults([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [query, filters, apiKey]);
-
-  // Handle Enter key press in textarea
+  // Handle Enter key press
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      // Ctrl+Enter or Cmd+Enter to search (allow normal Enter for newlines)
       if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         performSearch();
@@ -120,7 +116,6 @@ function SearchPage() {
 
   return (
     <div className="min-h-screen bg-[#0f0f0f]">
-      {/* Hero Section - Search area */}
       <main className="flex flex-col items-center px-4 pt-12 pb-10">
         {/* Title */}
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 text-center">
@@ -132,9 +127,8 @@ function SearchPage() {
           描述你想看的电影，AI帮你找到它
         </p>
 
-        {/* Search Box Container */}
+        {/* Search Box */}
         <div className="w-full max-w-2xl">
-          {/* Text Input Area */}
           <textarea
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -145,9 +139,8 @@ function SearchPage() {
             placeholder="输入电影描述...&#10;例如：一部关于盗梦的科幻片，主角在梦境中层层深入，有莱昂纳多主演"
           />
 
-          {/* Action buttons row */}
+          {/* Action buttons */}
           <div className="flex gap-3 mt-4">
-            {/* Filter toggle button */}
             <button
               type="button"
               onClick={() => setShowFilters(!showFilters)}
@@ -165,7 +158,6 @@ function SearchPage() {
               )}
             </button>
 
-            {/* Search Button */}
             <button
               type="button"
               onClick={performSearch}
@@ -180,18 +172,15 @@ function SearchPage() {
             </button>
           </div>
 
-          {/* Keyboard hint */}
           <p className="text-[#666666] text-xs mt-2 text-center">
             按 Ctrl+Enter 快速搜索
           </p>
         </div>
 
-        {/* Filter Bar - collapsible */}
+        {/* Filter Bar */}
         {showFilters && (
           <div className="w-full max-w-4xl mt-4">
             <FilterBar filters={filters} onFilterChange={handleFilterChange} />
-
-            {/* Clear filters button */}
             {hasActiveFilters && (
               <button
                 type="button"
@@ -208,23 +197,23 @@ function SearchPage() {
 
         {/* Results Section */}
         <div className="w-full mt-8">
-          {/* Loading state */}
           {isLoading && <LoadingState />}
 
-          {/* Error state */}
-          {!isLoading && error && <EmptyState type="error" message={error} />}
+          {!isLoading && error && (
+            <EmptyState
+              type="error"
+              message={error instanceof Error ? error.message : "搜索失败"}
+            />
+          )}
 
-          {/* Results list */}
           {!isLoading && !error && results.length > 0 && (
             <MovieList movies={results} />
           )}
 
-          {/* Empty state - no results after search */}
           {!isLoading && !error && hasSearched && results.length === 0 && (
             <EmptyState type="no-results" onExampleClick={handleExampleClick} />
           )}
 
-          {/* Initial state - before any search */}
           {!isLoading && !error && !hasSearched && (
             <EmptyState type="initial" onExampleClick={handleExampleClick} />
           )}
