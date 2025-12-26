@@ -2,21 +2,29 @@
 // TMDB API 客户端 - 获取电影信息和海报
 // Note: TMDB API may be blocked in China. Calls timeout gracefully.
 
-import type { MovieResult } from "./types";
+import { createServerFn } from "@tanstack/react-start";
 import type { Locale } from "./i18n";
+import type { MovieResult } from "./types";
 
 // TMDB API configuration
 const TMDB_API_URL = "https://api.themoviedb.org/3";
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
 
-// Get API key - works on both client and server
-function getApiKey(): string {
-  // Server-side (Cloudflare Workers) - check for Wrangler env vars
-  if (typeof globalThis !== "undefined" && (globalThis as any).VITE_TMDB_API_KEY) {
-    return (globalThis as any).VITE_TMDB_API_KEY;
+function getServerApiKey(): string {
+  // Cloudflare Workers via wrangler vars
+  if (typeof globalThis !== "undefined") {
+    const globals = globalThis as unknown as {
+      TMDB_API_KEY?: unknown;
+      VITE_TMDB_API_KEY?: unknown;
+    };
+    const globalKey = globals.TMDB_API_KEY || globals.VITE_TMDB_API_KEY;
+    if (typeof globalKey === "string" && globalKey) return globalKey;
   }
-  // Client-side (Vite)
-  return import.meta.env.VITE_TMDB_API_KEY || "";
+
+  // Node/Vite dev server
+  // eslint-disable-next-line no-undef
+  const envKey = typeof process !== "undefined" ? (process.env.TMDB_API_KEY || process.env.VITE_TMDB_API_KEY) : undefined;
+  return envKey || "";
 }
 
 // TMDB movie search result
@@ -39,6 +47,62 @@ interface TMDBSearchResponse {
   results: TMDBMovie[];
   total_results: number;
 }
+
+export const searchTMDBMovieServer = createServerFn({ method: "GET" })
+  .inputValidator(
+    (data: { title: string; year?: number; locale?: Locale }) => data
+  )
+  .handler(async ({ data }): Promise<TMDBMovie | null> => {
+    const API_KEY = getServerApiKey();
+
+    if (!API_KEY || API_KEY === "your_tmdb_api_key_here") {
+      console.log("[TMDB] API not configured");
+      return null;
+    }
+
+    const { title, year, locale = "zh" } = data;
+    console.log("[TMDB] Searching for:", title, year, "Locale:", locale);
+
+    try {
+      const tmdbLanguage = locale === "en" ? "en-US" : "zh-CN";
+      const params = new URLSearchParams({
+        query: title,
+        language: tmdbLanguage,
+        include_adult: "false",
+        api_key: API_KEY,
+      });
+
+      if (year) {
+        params.append("year", year.toString());
+      }
+
+      const url = `${TMDB_API_URL}/search/movie?${params.toString()}`;
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        console.error("[TMDB] Error:", response.status);
+        return null;
+      }
+
+      const result: TMDBSearchResponse = await response.json();
+      console.log("[TMDB] Results count:", result.results?.length);
+      return result.results[0] || null;
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.name === "AbortError") {
+          console.log("[TMDB] Request timed out");
+        } else {
+          console.error("[TMDB] Network error:", error.message);
+        }
+      }
+      return null;
+    }
+  });
 
 // TMDB genre ID to Chinese name mapping
 const GENRE_MAP_ZH: Record<number, string> = {
@@ -71,8 +135,14 @@ const LANGUAGE_TO_REGION_EN: Record<string, string> = {
  * Check if TMDB API key is configured
  */
 export function isTMDBConfigured(): boolean {
-  const key = getApiKey();
-  return !!key && key !== "your_tmdb_api_key_here";
+  if (typeof window === "undefined") {
+    const key = getServerApiKey();
+    return !!key && key !== "your_tmdb_api_key_here";
+  }
+
+  // On the client we don't have access to the server secret.
+  // We allow TMDB enrichment attempts and let the server function decide.
+  return true;
 }
 
 /**
@@ -84,54 +154,17 @@ export async function searchTMDBMovie(
   year?: number,
   locale: Locale = "zh"
 ): Promise<TMDBMovie | null> {
-  const API_KEY = getApiKey();
-  
-  if (!API_KEY || API_KEY === "your_tmdb_api_key_here") {
-    console.log("[TMDB] API not configured");
-    return null;
-  }
-
-  console.log("[TMDB] Searching for:", title, year, "Locale:", locale);
-
   try {
-    const tmdbLanguage = locale === "en" ? "en-US" : "zh-CN";
-    const params = new URLSearchParams({
-      query: title,
-      language: tmdbLanguage,
-      include_adult: "false",
-      api_key: API_KEY,
+    return await searchTMDBMovieServer({
+      data: {
+        title,
+        year,
+        locale,
+      },
     });
-
-    if (year) {
-      params.append("year", year.toString());
-    }
-
-    const url = `${TMDB_API_URL}/search/movie?${params.toString()}`;
-    
-    // Shorter timeout (5s) to fail fast in China where TMDB is blocked
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    
-    const response = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      console.error("[TMDB] Error:", response.status);
-      return null;
-    }
-
-    const data: TMDBSearchResponse = await response.json();
-    console.log("[TMDB] Results count:", data.results?.length);
-    
-    return data.results[0] || null;
   } catch (error) {
-    // Silently fail for network errors (common in China due to firewall)
     if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        console.log("[TMDB] Request timed out (likely blocked by firewall)");
-      } else {
-        console.error("[TMDB] Network error:", error.message);
-      }
+      console.error("[TMDB] ServerFn error:", error.message);
     }
     return null;
   }
