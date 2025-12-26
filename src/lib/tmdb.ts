@@ -11,9 +11,9 @@ const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
 
 // Get API key - works on both client and server
 function getApiKey(): string {
-  // Server-side (Cloudflare Workers)
-  if (typeof process !== "undefined" && process.env?.VITE_TMDB_API_KEY) {
-    return process.env.VITE_TMDB_API_KEY;
+  // Server-side (Cloudflare Workers) - check for Wrangler env vars
+  if (typeof globalThis !== "undefined" && (globalThis as any).VITE_TMDB_API_KEY) {
+    return (globalThis as any).VITE_TMDB_API_KEY;
   }
   // Client-side (Vite)
   return import.meta.env.VITE_TMDB_API_KEY || "";
@@ -108,9 +108,9 @@ export async function searchTMDBMovie(
 
     const url = `${TMDB_API_URL}/search/movie?${params.toString()}`;
     
-    // Longer timeout (30s) for users in regions with slow/blocked access
+    // Shorter timeout (5s) to fail fast in China where TMDB is blocked
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
     
     const response = await fetch(url, { signal: controller.signal });
     clearTimeout(timeoutId);
@@ -125,8 +125,14 @@ export async function searchTMDBMovie(
     
     return data.results[0] || null;
   } catch (error) {
-    // Silently fail for network errors (common in China)
-    console.error("[TMDB] Failed:", error);
+    // Silently fail for network errors (common in China due to firewall)
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        console.log("[TMDB] Request timed out (likely blocked by firewall)");
+      } else {
+        console.error("[TMDB] Network error:", error.message);
+      }
+    }
     return null;
   }
 }
