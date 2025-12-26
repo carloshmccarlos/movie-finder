@@ -1,7 +1,6 @@
 // TMDB API client for fetching movie information and posters
 // TMDB API 客户端 - 获取电影信息和海报
-// Note: TMDB API calls are made from client. For China users, 
-// the search.ts enrichWithTMDB runs on server during SSR.
+// Note: TMDB API may be blocked in China. Calls timeout gracefully.
 
 import type { MovieResult } from "./types";
 import type { Locale } from "./i18n";
@@ -78,8 +77,7 @@ export function isTMDBConfigured(): boolean {
 
 /**
  * Search TMDB for a movie by title and optional year
- * This function is called from search.ts during SSR (server-side)
- * which bypasses China firewall
+ * Note: May fail in China due to firewall - gracefully returns null
  */
 export async function searchTMDBMovie(
   title: string,
@@ -110,9 +108,9 @@ export async function searchTMDBMovie(
 
     const url = `${TMDB_API_URL}/search/movie?${params.toString()}`;
     
-    // Add timeout for slow connections
+    // Longer timeout (30s) for users in regions with slow/blocked access
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
     
     const response = await fetch(url, { signal: controller.signal });
     clearTimeout(timeoutId);
