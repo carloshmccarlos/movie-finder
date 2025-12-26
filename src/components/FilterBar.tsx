@@ -15,7 +15,7 @@ export function FilterBar({ filters, onFilterChange }: FilterBarProps) {
   const filterCategories = getFilterCategories(locale);
 
   return (
-    <div className="mb-8 md:mb-12 space-y-4 md:space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {filterCategories.map((category) => (
         <div key={category.key} className="flex flex-wrap items-center gap-2 md:gap-4">
           {/* Category label */}

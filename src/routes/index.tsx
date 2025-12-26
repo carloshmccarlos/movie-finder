@@ -1,10 +1,12 @@
 // Main search page - AI Movie Finder landing page
 // 主搜索页面 - AI电影搜索首页 (Modern Glassmorphism UI)
+// Fixed: No sessionStorage persistence - fresh state on refresh
+// Added: Collapsible filter bar with toggle
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search } from "lucide-react";
+import { Search, SlidersHorizontal, ChevronDown } from "lucide-react";
 
 import { FilterBar } from "../components/FilterBar";
 import { MovieList } from "../components/MovieList";
@@ -15,45 +17,23 @@ import { searchMovies } from "../lib/search";
 import { useI18n } from "../lib/i18n-context";
 import type { SearchFilters } from "../lib/types";
 
-// Session storage key for persisting search state
-const STORAGE_KEY = "last_search";
-
 // Route definition
 export const Route = createFileRoute("/")({
   component: SearchPage,
 });
 
-// Load/save search state helpers (client-side only)
-function loadLastSearch(): { query: string; filters: SearchFilters } | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const stored = sessionStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
-  } catch {}
-  return null;
-}
-
-function saveLastSearch(query: string, filters: SearchFilters) {
-  if (typeof window === "undefined") return;
-  try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ query, filters }));
-  } catch {}
-}
-
 // Main search page component
 function SearchPage() {
   const { t, examples, locale } = useI18n();
-  const lastSearch = loadLastSearch();
 
-  // Search state
-  const [query, setQuery] = useState(lastSearch?.query || "");
-  const [submittedQuery, setSubmittedQuery] = useState(lastSearch?.query || "");
-  const [filters, setFilters] = useState<SearchFilters>(
-    lastSearch?.filters || { genre: "", region: "", era: "" }
-  );
-  const [submittedFilters, setSubmittedFilters] = useState<SearchFilters>(
-    lastSearch?.filters || { genre: "", region: "", era: "" }
-  );
+  // Search state - no persistence, fresh on every page load
+  const [query, setQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
+  const [filters, setFilters] = useState<SearchFilters>({ genre: "", region: "", era: "" });
+  const [submittedFilters, setSubmittedFilters] = useState<SearchFilters>({ genre: "", region: "", era: "" });
+  
+  // Filter bar toggle state
+  const [showFilters, setShowFilters] = useState(false);
 
   // TanStack Query for search
   const {
@@ -71,6 +51,7 @@ function SearchPage() {
 
   const results = searchResults?.results || [];
   const hasSearched = isFetched && !!submittedQuery;
+  const hasActiveFilters = Object.values(filters).some((v) => v);
 
   // Handlers
   const handleFilterChange = useCallback(
@@ -85,7 +66,8 @@ function SearchPage() {
     const trimmedQuery = query.trim();
     setSubmittedQuery(trimmedQuery);
     setSubmittedFilters({ ...filters });
-    saveLastSearch(trimmedQuery, filters);
+    // Auto-close filter bar when search is triggered
+    setShowFilters(false);
   }, [query, filters]);
 
   const handleKeyDown = useCallback(
@@ -100,6 +82,11 @@ function SearchPage() {
 
   const handleExampleClick = useCallback((example: string) => {
     setQuery(example);
+  }, []);
+
+  // Toggle filter bar visibility
+  const toggleFilters = useCallback(() => {
+    setShowFilters((prev) => !prev);
   }, []);
 
   return (
@@ -146,7 +133,29 @@ function SearchPage() {
               className="w-full h-32 md:h-40 p-4 md:p-6 bg-transparent border-none focus:ring-0 focus:outline-none
                          text-base md:text-xl text-white placeholder-gray-600 resize-none font-light"
             />
-            <div className="flex justify-end items-center p-3 md:p-4 border-t border-white/5 bg-black/20 rounded-b-2xl">
+            <div className="flex justify-between items-center p-3 md:p-4 border-t border-white/5 bg-black/20 rounded-b-2xl">
+              {/* Filter toggle button */}
+              <button
+                type="button"
+                onClick={toggleFilters}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all
+                  ${showFilters || hasActiveFilters
+                    ? "bg-[#ff6b35]/20 text-[#ff6b35] border border-[#ff6b35]/50"
+                    : "text-gray-500 hover:text-white hover:bg-white/5"
+                  }`}
+              >
+                <SlidersHorizontal size={16} />
+                <span className="hidden sm:inline">{t("search.filter")}</span>
+                {hasActiveFilters && (
+                  <span className="w-1.5 h-1.5 bg-[#ff6b35] rounded-full" />
+                )}
+                <ChevronDown
+                  size={14}
+                  className={`transition-transform duration-200 ${showFilters ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {/* Search button */}
               <button
                 onClick={performSearch}
                 disabled={isLoading || !query.trim()}
@@ -169,11 +178,15 @@ function SearchPage() {
           </div>
         </div>
 
-        {/* Filters */}
-        <FilterBar filters={filters} onFilterChange={handleFilterChange} />
+        {/* Collapsible Filter Bar */}
+        {showFilters && (
+          <div className="mb-8 md:mb-12 animate-in slide-in-from-top-2 duration-200">
+            <FilterBar filters={filters} onFilterChange={handleFilterChange} />
+          </div>
+        )}
 
         {/* Results Section */}
-        <div className="mt-12">
+        <div className="mt-8 md:mt-12">
           {isLoading && <LoadingState />}
 
           {!isLoading && error && (
@@ -208,11 +221,6 @@ function SearchPage() {
       {/* Footer */}
       <footer className="border-t border-white/5 py-12 text-center text-gray-600 text-sm">
         <p>© 2025 AI Movie Finder. Powered by DeepSeek-V3.2 & TMDB.</p>
-        {/* <div className="flex justify-center gap-4 mt-4">
-          <a href="#" className="hover:text-white transition-colors">{t("footer.about")}</a>
-          <a href="#" className="hover:text-white transition-colors">{t("footer.api")}</a>
-          <a href="#" className="hover:text-white transition-colors">{t("footer.privacy")}</a>
-        </div> */}
       </footer>
     </div>
   );
